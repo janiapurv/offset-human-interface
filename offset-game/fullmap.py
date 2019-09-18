@@ -1,4 +1,5 @@
 import pygame
+from utils import MousePosition
 
 
 def get_window_size(screen_size):
@@ -14,7 +15,7 @@ def get_position(screen_size):
 class FullMap(pygame.sprite.Sprite):
     def __init__(self, screen, screen_size):
         super().__init__()
-        self.map_image = pygame.image.load("images/sample_map.PNG")
+        self.map_image = pygame.image.load("images/map.png")
         self.position = get_position(screen_size)
         self.surface = pygame.Surface(get_window_size(screen_size))
         self.surface.fill(pygame.Color('dodgerblue'))

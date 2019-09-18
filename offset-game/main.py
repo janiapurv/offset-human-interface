@@ -28,7 +28,7 @@ class Main:
                         return
                 # Update all the modules
                 self.map.update(event)
-                self.strategy.update()
+                self.strategy.update(event)
                 self.fullmap.update()
                 pygame.display.update()
                 clock.tick(60)

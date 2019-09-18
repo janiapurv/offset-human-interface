@@ -1,4 +1,5 @@
 import pygame
+from utils import Button
 
 
 def get_window_size(screen_size):
@@ -14,21 +15,56 @@ def get_position(screen_size):
 class Strategy(pygame.sprite.Sprite):
     def __init__(self, screen, screen_size):
         super().__init__()
+        self.size = get_window_size(screen_size)
         self.position = get_position(screen_size)
         self.surface = pygame.Surface(get_window_size(screen_size))
         self.surface.fill((0, 0, 0))
         self.screen = screen
         self.screen.blit(self.surface, self.position)
-        # Add four buttons
 
-    def path_planning(self):
+    def path_planning(self, event):
         SIZE = min(self.surface.get_size())
-        image = pygame.image.load('images/path_planning.png')
-        image = pygame.transform.scale(image,
-                                       (int(SIZE * 0.5), int(SIZE * 0.5)))
-        self.surface.blit(image, (0, 0))
+        path = 'images/path_planning.png'
+        icon_position = (5, 25)
+        button = Button(self.surface, icon_position, (SIZE, SIZE), path)
+        button.event_handler(self.position, icon_position, event)
+        if button.pressed:
+            # perform some action
+            print('hello')
 
-    def update(self):
+    def mapping(self, event):
+        SIZE = min(self.surface.get_size())
+        path = 'images/mapping.png'
+        icon_position = (100, 25)
+        button = Button(self.surface, icon_position, (SIZE, SIZE), path)
+        button.event_handler(self.position, icon_position, event)
+        if button.pressed:
+            print('hello')
+
+    def formation(self, event):
+        SIZE = min(self.surface.get_size())
+        path = 'images/formation.png'
+        icon_position = (200, 25)
+        button = Button(self.surface, icon_position, (SIZE, SIZE), path)
+        button.event_handler(self.position, icon_position, event)
+        if button.pressed:
+            # Draw a rectangel undernead
+            print(pygame.mouse.get_pos())
+            button.indication(self.surface, self.position, icon_position)
+
+    def target_search(self, event):
+        SIZE = min(self.surface.get_size())
+        path = 'images/target_search.png'
+        icon_position = (300, 25)
+        button = Button(self.surface, icon_position, (SIZE, SIZE), path)
+        button.event_handler(self.position, icon_position, event)
+        if button.pressed:
+            print('hello')
+
+    def update(self, event):
         self.surface.fill((0, 0, 0))
-        self.path_planning()
+        self.path_planning(event)
+        self.mapping(event)
+        self.formation(event)
+        self.target_search(event)
         self.screen.blit(self.surface, self.position)
