@@ -30,7 +30,7 @@ class Strategy(pygame.sprite.Sprite):
         button.event_handler(self.position, icon_position, event)
         if button.pressed:
             # perform some action
-            print('hello')
+            print('Path planning')
 
     def mapping(self, event):
         SIZE = min(self.surface.get_size())
@@ -39,7 +39,7 @@ class Strategy(pygame.sprite.Sprite):
         button = Button(self.surface, icon_position, (SIZE, SIZE), path)
         button.event_handler(self.position, icon_position, event)
         if button.pressed:
-            print('hello')
+            print('Mapping')
 
     def formation(self, event):
         SIZE = min(self.surface.get_size())
@@ -49,8 +49,7 @@ class Strategy(pygame.sprite.Sprite):
         button.event_handler(self.position, icon_position, event)
         if button.pressed:
             # Draw a rectangel undernead
-            print(pygame.mouse.get_pos())
-            button.indication(self.surface, self.position, icon_position)
+            print('Formation')
 
     def target_search(self, event):
         SIZE = min(self.surface.get_size())
@@ -59,7 +58,7 @@ class Strategy(pygame.sprite.Sprite):
         button = Button(self.surface, icon_position, (SIZE, SIZE), path)
         button.event_handler(self.position, icon_position, event)
         if button.pressed:
-            print('hello')
+            print('Target search')
 
     def update(self, event):
         self.surface.fill((0, 0, 0))

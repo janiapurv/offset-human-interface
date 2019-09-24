@@ -16,7 +16,7 @@ class Information(pygame.sprite.Sprite):
         super().__init__()
         self.position = get_position(screen_size)
         self.surface = pygame.Surface(get_window_size(screen_size))
-        self.surface.fill(pygame.Color('dodgerblue'))
+        self.surface.fill((0, 0, 0))
         screen.blit(self.surface, self.position)
 
     def update(self, screen):

@@ -27,7 +27,7 @@ class PanZoom(pygame.sprite.Sprite):
         self.surface = surface
         self.map_image = map_image
         self.map_pos = self.map_image.get_rect()
-        self.mouse = MousePosition(2)
+        self.mouse = MousePosition(0)
 
     def pan(self, map_image, mouse_pos):
         # intial_mouse = mouse_pos[0]
@@ -88,7 +88,13 @@ class Map(pygame.sprite.Sprite):
                 self.pan_zoom.pan(self.map_image, self.mouse.position())
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self.pan_zoom.zoom(self.map_image, event)
-            self.pan_zoom.draw_updated_map()
+            else:
+                self.pan_zoom.draw_updated_map()
             if keys[pygame.K_s]:
                 mouse_draw(self.mouse.position(), self.surface, self.map_image)
+            if pygame.mouse.get_pressed()[2]:
+                self.map_image = pygame.image.load("images/map.png")
+                self.pan_zoom = PanZoom(self.surface, self.map_image)
+                self.surface.blit(self.map_image, (0, 0))
+
             self.screen.blit(self.surface, self.position)
