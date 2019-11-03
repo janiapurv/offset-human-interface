@@ -1,56 +1,53 @@
-import math
-import pygame
+import sys
+from contextlib import contextmanager
 
 
-class MousePosition:
-    def __init__(self, key):
-        self.pos = []
-        self.key = key
+class SkipWith(Exception):
+    pass
 
-    def position(self):
-        if pygame.mouse.get_pressed()[self.key]:
-            self.pos.append(pygame.mouse.get_pos())
+
+@contextmanager
+def skip_run(flag, f):
+    """To skip a block of code.
+
+    Parameters
+    ----------
+    flag : str
+        skip or run.
+
+    Returns
+    -------
+    None
+
+    """
+    @contextmanager
+    def check_active():
+        deactivated = ['skip']
+        p = ColorPrint()  # printing options
+        if flag in deactivated:
+            p.print_skip('{:>12}  {:>2}  {:>12}'.format(
+                'Skipping the block', '|', f))
+            raise SkipWith()
         else:
-            self.pos = []
+            p.print_run('{:>12}  {:>3}  {:>12}'.format('Running the block',
+                                                       '|', f))
+            yield
 
-        return self.pos
-
-
-class Button(object):
-    def __init__(self, surface, icon_position, size, image_path):
-        # create 3 images
-        image = pygame.image.load(image_path)
-        self.icon = pygame.transform.scale(
-            image, (int(size[0] * 0.5), int(size[1] * 0.5)))
-        self.rect = self.icon.get_rect()
-        self.surface = surface
-        surface.blit(self.icon, icon_position)
-        self.pressed = False
-
-    def indication(self, surface, position, icon_position):
-        x_pos = position[0] + icon_position[0]
-        y_pos = position[1] + icon_position[1] + 50
-        pygame.draw.rect(surface, (255, 255, 255), (x_pos, y_pos, 100, 100),
-                         10)
-
-    def event_handler(self, position, icon_position, event):
-        self.pressed = False
-        # change selected color if rectange clicked
-        if event.type == pygame.MOUSEBUTTONDOWN:  # is some button clicked
-            self.shifted_pos = (event.pos[0] - position[0] - icon_position[0],
-                                event.pos[1] - position[1] - icon_position[1])
-            if event.button == 1:  # is left button clicked
-                if self.rect.collidepoint(self.shifted_pos):
-                    self.pressed = True
+    try:
+        yield check_active
+    except SkipWith:
+        pass
 
 
-def get_rectangle_param(intial_pos, final_pos):
+class ColorPrint:
+    @staticmethod
+    def print_skip(message, end='\n'):
+        sys.stderr.write('\x1b[88m' + message.strip() + '\x1b[0m' + end)
 
-    dist = math.sqrt((final_pos[0] - intial_pos[0])**2 +
-                     (final_pos[1] - intial_pos[1])**2)
-    angle = math.atan2((final_pos[1] - intial_pos[1]),
-                       (final_pos[0] - intial_pos[0]))
-    width = math.cos(angle) * dist
-    height = math.sin(angle) * dist
+    @staticmethod
+    def print_run(message, end='\n'):
+        sys.stdout.write('\x1b[1;32m' + message.strip() + '\x1b[0m' + end)
 
-    return width, height
+    @staticmethod
+    def print_warn(message, end='\n'):
+        sys.stderr.write('\x1b[1;33m' + message.strip() + '\x1b[0m' + end)
