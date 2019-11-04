@@ -30,10 +30,6 @@ class PanZoom(pygame.sprite.Sprite):
         self.mouse = MousePosition(0)
 
     def pan(self, map_image, mouse_pos):
-        # intial_mouse = mouse_pos[0]
-        # final_mouse = mouse_pos[-1]
-        # dx_mouse = final_mouse[0] - intial_mouse[0]
-        # dy_mouse = final_mouse[1] - intial_mouse[1]
         width, height = get_rectangle_param(mouse_pos[0], mouse_pos[-1])
         self.map_pos[0] = self.map_pos[0] + int(0.5 * width)
         self.map_pos[1] = self.map_pos[1] + int(0.5 * height)

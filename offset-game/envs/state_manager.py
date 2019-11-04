@@ -182,7 +182,7 @@ class StateManager():
                 target['progress_goals'] = 1
 
         sum_progress = 0
-        found_goal = 0
+        self.found_goal = False
         for j, target in enumerate(self.target):
             if target['target_id'] == self.config['simulation'][
                     'goal_node']:  # found the goal
@@ -198,11 +198,11 @@ class StateManager():
                             self.target[i]['probability_goals'] = 0
                             self.target[i]['probability_goals_indoor'] = 0
                             self.target[i]['probability_goals_outdoor'] = 0
-                    found_goal = 1
+                    self.found_goal = True
                     break
             sum_progress += self.target[j]['progress_goals']
 
-        if found_goal == 0:
+        if not self.found_goal:
             for target in self.target:
                 target['probability_goals_outdoor'] = (
                     1 - target['progress_goals']) / (
@@ -233,7 +233,7 @@ class StateManager():
                 target['progress_goals'] = 1
 
         sum_progress = 0
-        found_goal = 0
+        self.found_goal = False
         for j, target in enumerate(self.target):
             if target['target_id'] == self.config['simulation'][
                     'goal_node']:  # found the goal
@@ -249,11 +249,11 @@ class StateManager():
                             self.target[i]['probability_goals'] = 0
                             self.target[i]['probability_goals_indoor'] = 0
                             self.target[i]['probability_goals_outdoor'] = 0
-                    found_goal = 1
+                    self.found_goal = True
                     break
             sum_progress += self.target[j]['progress_goals']
 
-        if found_goal == 0:
+        if not self.found_goal:
             for target in self.target:
                 target['probability_goals_outdoor'] = (
                     1 - target['progress_goals']) / (

@@ -2,15 +2,7 @@ import time
 import yaml
 from pathlib import Path
 
-import numpy as np
-import pybullet as p
-import matplotlib.pyplot as plt
-
 from envs.environments import Benning
-from envs.utils import get_xy_position
-
-# from models.torch_network import Actor, Critic
-# from models.torch_train import AdvantageCritic
 
 from utils import skip_run
 

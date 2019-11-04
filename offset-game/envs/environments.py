@@ -152,7 +152,7 @@ class Benning():
         # Get reward
         reward = self.get_reward()
         # Is episode done
-        # done = self.check_episode_done()
+        done = self.check_episode_done()
 
         return new_state, reward, done
 
@@ -175,6 +175,8 @@ class Benning():
     def check_episode_done(self):
         done = False
         if self.current_time >= self.config['simulation']['total_time']:
+            done = True
+        if self.found_goal:
             done = True
         return done
 
