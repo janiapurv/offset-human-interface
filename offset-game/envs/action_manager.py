@@ -2,20 +2,17 @@ import math as mt
 import numpy as np
 from scipy import interpolate
 
-from .state_manager import StateManager
-
 from primitives.planning.planners import SkeletonPlanning
 
 from primitives.formation.control import FormationControl
 from primitives.mrta.task_allocation import MRTA
 
 
-class ActionManager(StateManager):
+class ActionManager(object):
     def __init__(self, state_manager):
-        super(ActionManager,
-              self).__init__(state_manager.uav, state_manager.ugv,
-                             state_manager.current_time, state_manager.config)
         self.state_manager = state_manager
+        self.config = state_manager.config
+        self.current_time = state_manager.current_time
         self.mrta = MRTA()
 
         # Setup the platoons
@@ -61,7 +58,7 @@ class ActionManager(StateManager):
         # Get the group/target info
         groupInfo = np.zeros((len(decoded_actions), 6))
         for i, actions in enumerate(decoded_actions):
-            info = self.node_info(actions[2])
+            info = self.state_manager.node_info(actions[2])
             groupInfo[i, 0:2] = info['position'][0:2]
             groupInfo[i, 2] = mt.floor(actions[0])
             groupInfo[i, 3] = groupInfo[i, 3] * 0 + 1
@@ -82,12 +79,12 @@ class ActionManager(StateManager):
         # ['n_vehicles', 'primitive_id', 'target_id']
         # should implement as a dict
         if decode_actions[1] == 1:
-            target_info = self.node_info(decode_actions[2])
+            target_info = self.state_manager.node_info(decode_actions[2])
             info['end_pos'] = target_info['position']
             info['primitive_id'] = decode_actions[1]
 
         elif decode_actions[1] == 2:
-            target_info = self.node_info(decode_actions[2])
+            target_info = self.state_manager.node_info(decode_actions[2])
             info['end_pos'] = target_info['position']
             if decode_actions[3] == 0:
                 info['formation_type'] = 'solid'
@@ -109,7 +106,7 @@ class ActionManager(StateManager):
         """
         # UAV allocation
         robotInfo, groupInfo = self.get_robot_group_info(
-            self.uav, decoded_actions_uav)
+            self.state_manager.uav, decoded_actions_uav)
 
         # MRTA
         robotInfo, groupCenter = self.mrta.allocateRobots(robotInfo, groupInfo)
@@ -123,7 +120,8 @@ class ActionManager(StateManager):
 
         # UGV allocation
         robotInfo, groupInfo = self.get_robot_group_info(
-            self.ugv, decoded_actions_uav)
+            self.state_manager.ugv, decoded_actions_uav)
+
         # MRTA
         robotInfo, groupCenter = self.mrta.allocateRobots(robotInfo, groupInfo)
         for i in range(self.config['simulation']['n_ugv_platoons']):
@@ -146,6 +144,7 @@ class ActionManager(StateManager):
         decoded_actions_ugv : array
             UGV decoded actions
         """
+
         ids = 0
         for i in range(self.config['simulation']['n_uav_platoons']):
             vehicles_id = list(range(ids, ids + decoded_actions_uav[i][0]))
@@ -167,6 +166,7 @@ class ActionManager(StateManager):
                             decoded_actions_uav,
                             decoded_actions_ugv,
                             p_simulation,
+                            parameter_server,
                             hand_coded=True):
         """Performs task execution
 
@@ -178,11 +178,14 @@ class ActionManager(StateManager):
             UAV decoded actions
         p_simulation : bullet engine
             Bullet engine to execute the simulation
+        parameter_server : class
+            A class containing parameter server
         hand_coded : bool
             Whether hand coded tactics are being used or not
         """
 
         if hand_coded:
+
             self.perform_task_allocation(decoded_actions_uav,
                                          decoded_actions_ugv)
         else:
@@ -190,8 +193,8 @@ class ActionManager(StateManager):
                                                decoded_actions_ugv)
 
         done_rolling_primitive = False
-        # Execute them
-        for i in range(500):
+        # Execute the actions
+        for i in range(300):
             # Update the time
             self.current_time = self.current_time + self.config['simulation'][
                 'time_step']
@@ -206,10 +209,17 @@ class ActionManager(StateManager):
                 if self.ugv_platoon[i].n_vehicles > 0:
                     done.append(self.ugv_platoon[i].execute_primitive())
 
-            # if all(item for item in done):
-            #     done_rolling_primitive = True
-            #     break
+            # Update the parameter server
+            parameter_server.update_state_param.remote(
+                self.state_manager.uav, self.state_manager.ugv,
+                self.state_manager.grid_map)
+
+            # Perform simulation
             p_simulation.stepSimulation()
+
+            if all(item for item in done):
+                done_rolling_primitive = True
+                break
 
             # Video recording and logging
             if self.config['record_video']:
@@ -218,16 +228,13 @@ class ActionManager(StateManager):
                     self.config['log_path'] + "tactic.mp4")
             if self.config['log_states']:
                 print('Need to implement')
-
         return done_rolling_primitive
 
 
-class PrimitiveManager(StateManager):
+class PrimitiveManager(object):
     def __init__(self, state_manager):
-        super(PrimitiveManager,
-              self).__init__(state_manager.uav, state_manager.ugv,
-                             state_manager.current_time, state_manager.config)
         self.state_manager = state_manager
+        self.config = state_manager.config
         self.planning = SkeletonPlanning(self.state_manager.config,
                                          self.state_manager.grid_map)
         self.formation = FormationControl()
@@ -245,19 +252,35 @@ class PrimitiveManager(StateManager):
         """
         # Update vehicles
         self.vehicles_id = primitive_info['vehicles_id']
-
-        if primitive_info['vehicle_type'] == 'uav':
-            self.vehicles = [self.uav[j] for j in self.vehicles_id]
-        else:
-            self.vehicles = [self.ugv[j] for j in self.vehicles_id]
-        self.n_vehicles = len(self.vehicles)
+        self.vehicles_type = primitive_info['vehicle_type']
+        self.n_vehicles = len(self.vehicles_id)
 
         # Primitive parameters
         self.primitive_id = primitive_info['primitive_id']
         self.formation_type = primitive_info['formation_type']
         self.end_pos = primitive_info['end_pos']
         self.count = 0
+        return None
 
+    def get_vehicles(self):
+        # A temp copy to get the path planning
+        if self.vehicles_type == 'uav':
+            self.vehicles = [
+                self.state_manager.uav[j] for j in self.vehicles_id
+            ]
+        else:
+            self.vehicles = [
+                self.state_manager.ugv[j] for j in self.vehicles_id
+            ]
+        return None
+
+    def set_vehicles(self):
+        if self.vehicles_type == 'uav':
+            for i, j in enumerate(self.vehicles_id):
+                self.state_manager.uav[j] = self.vehicles[i]
+        else:
+            for i, j in enumerate(self.vehicles_id):
+                self.state_manager.ugv[j] = self.vehicles[i]
         return None
 
     def make_vehicles_idle(self):
@@ -272,8 +295,13 @@ class PrimitiveManager(StateManager):
 
     def get_centroid(self):
         centroid = []
-        for vehicle in self.vehicles:
-            centroid.append(vehicle.current_pos)
+        if self.vehicles_type == 'uav':
+            for j in self.vehicles_id:
+                centroid.append(self.state_manager.uav[j].current_pos)
+        else:
+            for j in self.vehicles_id:
+                centroid.append(self.state_manager.ugv[j].current_pos)
+
         centroid = np.mean(np.asarray(centroid), axis=0)
         return centroid[0:2]  # only x and y
 
@@ -313,9 +341,11 @@ class PrimitiveManager(StateManager):
 
     def execute_primitive(self):
         """Perform primitive execution
-            """
+        """
+        self.get_vehicles()
         primitives = [self.planning_primitive, self.formation_primitive]
         done = primitives[self.primitive_id - 1]()
+        self.set_vehicles()
         return done
 
     def planning_primitive(self):
@@ -324,7 +354,7 @@ class PrimitiveManager(StateManager):
         if self.count == 0:
             # First point of formation
             self.centroid_pos = self.get_centroid()
-            self.next_pos = self.centroid_pos
+            self.next_pos = self.get_centroid()
             formation_done = self.formation_primitive()
             if formation_done:
                 self.count = 1
@@ -355,6 +385,7 @@ class PrimitiveManager(StateManager):
         self.vehicles, formation_done = self.formation.execute(
             self.vehicles, self.next_pos, self.centroid_pos, dt,
             self.formation_type)
+
         for vehicle in self.vehicles:
             vehicle.set_position(vehicle.updated_pos)
 

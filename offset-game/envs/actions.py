@@ -1,13 +1,11 @@
 import math as mt
-from .state_manager import StateManager
 
 
-class Action(StateManager):
+class Action(object):
     def __init__(self, state_manager):
-        super(Action,
-              self).__init__(state_manager.uav, state_manager.ugv,
-                             state_manager.current_time, state_manager.config)
-        # self.config = config
+        self.state_manager = state_manager
+        self.current_time = state_manager.current_time
+        self.config = state_manager.config
         return None
 
     def action_decode(self, net_output, type):
@@ -65,7 +63,7 @@ class Action(StateManager):
             decoded_actions_uav.append(decoded_actions)
             total_probability += decoded_actions[0]
 
-        idle_vehicles = self.get_idle_vehicles(self.uav)
+        idle_vehicles = self.get_idle_vehicles(self.state_manager.uav)
         for i, actions in enumerate(decoded_actions_uav):
             if i == 2:
                 decoded_actions_uav[i][0] = len(idle_vehicles) - (
@@ -88,7 +86,7 @@ class Action(StateManager):
             decoded_actions_ugv.append(decoded_actions)
             total_probability += decoded_actions[0]
 
-        idle_vehicles = self.get_idle_vehicles(self.ugv)
+        idle_vehicles = self.get_idle_vehicles(self.state_manager.ugv)
         for i, actions in enumerate(decoded_actions_ugv):
             if i == self.config['simulation']['n_ugv_platoons'] - 1:
                 decoded_actions_ugv[i][0] = len(idle_vehicles) - (

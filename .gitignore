@@ -87,3 +87,4 @@ target/
 
 # Mypy cache
 .mypy_cache/
+offset-game/envs/__pycache__/action_manager.cpython-37.pyc

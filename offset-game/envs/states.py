@@ -3,7 +3,6 @@ import collections
 import numpy as np
 
 from sklearn.cluster import KMeans
-from .state_manager import StateManager
 
 
 def cluster(vehicles, n_clusters, config):
@@ -187,11 +186,12 @@ def flatten_state_list(l):
             yield el
 
 
-class State(StateManager):
+class State(object):
     def __init__(self, state_manager):
-        super(State,
-              self).__init__(state_manager.uav, state_manager.ugv,
-                             state_manager.current_time, state_manager.config)
+        self.state_manager = state_manager
+        self.uav = state_manager.uav
+        self.ugv = state_manager.ugv
+        self.current_time = state_manager.current_time
         self.config = state_manager.config
         return None
 
@@ -208,10 +208,10 @@ class State(StateManager):
         for j in range(n_nodes):
             for k, target in enumerate(
                     self.config['simulation']['target_building_id']):
-                target_info = self.target_info(target)
+                target_info = self.state_manager.target_info(target)
                 probability_goals = target_info['probability_goals']
 
-                node_info = self.node_info(j)
+                node_info = self.state_manager.node_info(j)
                 importance[j, k] += probability_goals * np.linalg.norm(
                     np.asarray(node_info['position']) -
                     np.asarray(target_info['position']))
@@ -364,7 +364,7 @@ class State(StateManager):
         # Get pareto node position
         pareto_node_pos = []
         for node in pareto_nodes:
-            node_info = self.node_info(node)
+            node_info = self.state_manager.node_info(node)
             pareto_node_pos.append(node_info['position'])
 
         ugv_group = self.get_group_info(cluster_id_ugv, ugv_cluster_pos, 'ugv',
@@ -390,7 +390,4 @@ class State(StateManager):
 
         # Convert everything into a list
         state = list(flatten_state_list(state))
-
-        print(state)
-
         return state
