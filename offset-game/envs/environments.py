@@ -1,8 +1,11 @@
-import ray
 import time
+import math
+from pathlib import Path
 
-import pybullet as p
+import ray
 
+from .base_env import BaseEnv
+from .agents import UAV, UGV
 from .state_manager import StateManager
 from .states import State
 from .actions import Action
@@ -11,28 +14,32 @@ from .rewards import BenningReward
 
 
 @ray.remote
-class Benning():
+class Benning(BaseEnv):
     def __init__(self, config):
-        if config['simulation']['headless']:
-            p.connect(p.DIRECT)  # Non-graphical version
-        else:
-            p.connect(p.GUI)
-            p.resetDebugVisualizerCamera(cameraDistance=150,
-                                         cameraYaw=0,
-                                         cameraPitch=-89.999,
-                                         cameraTargetPosition=[0, 80, 0])
+        # Inherit base env
+        super().__init__(config)
+
         # Environment parameters
         self.current_time = config['simulation']['current_time']
         self.done = False
         self.config = config
 
-        # Parameters for simulation
-        p.setGravity(0, 0, -9.81)
-        p.setRealTimeSimulation(1)
+        # Load the environment
+        if self.config['simulation']['collision_free']:
+            path = Path(
+                __file__).parents[0] / 'urdf/environment_collision_free.urdf'
+        else:
+            path = Path(__file__).parents[0] / 'urdf/environment.urdf'
+        self.p.loadURDF(str(path), [58.487, 23.655, 0.1],
+                        self.p.getQuaternionFromEuler([0, 0, math.pi / 2]),
+                        useFixedBase=True)
+
+        # Setup the uav and ugv
+        uav, ugv = super()._initial_setup(UGV, UAV)
 
         # Initialize the state and action components
-        self.state_manager = StateManager(self.current_time, self.config)
-        self.state_manager._initial_mission_setup()
+        self.state_manager = StateManager(uav, ugv, self.current_time,
+                                          self.config)
         self.state = State(self.state_manager)
         self.reward = BenningReward(self.state_manager)
         self.action = Action(self.state_manager)
@@ -54,17 +61,17 @@ class Benning():
 
         far = camDistance
         near = -far
-        view_matrix = p.computeViewMatrixFromYawPitchRoll(
+        view_matrix = self.p.computeViewMatrixFromYawPitchRoll(
             camTargetPos, camDistance, 0, 90, 0, upAxisIndex)
-        projection_matrix = p.computeProjectionMatrix(-90, 60, 150, -150, near,
-                                                      far)
+        projection_matrix = self.p.computeProjectionMatrix(
+            -90, 60, 150, -150, near, far)
         # Get depth values using the OpenGL renderer
-        width, height, rgbImg, depthImg, segImg = p.getCameraImage(
+        width, height, rgbImg, depthImg, segImg = self.p.getCameraImage(
             pixelWidth,
             pixelHeight,
             view_matrix,
             projection_matrix,
-            renderer=p.ER_BULLET_HARDWARE_OPENGL)
+            renderer=self.p.ER_BULLET_HARDWARE_OPENGL)
         return rgbImg, depthImg, segImg
 
     def reset(self, ps):
@@ -79,7 +86,7 @@ class Benning():
 
         for i in range(200):
             time.sleep(1 / 240)
-            p.stepSimulation()
+            self.p.stepSimulation()
 
         # Update parameter server
         ps.update_state_param.remote(self.state_manager.uav,
@@ -94,7 +101,6 @@ class Benning():
     def step(self, parameter_server, action):
         """Take a step in the environement
         """
-
         # Get the action from parameter server
 
         # Action splitting
@@ -102,15 +108,18 @@ class Benning():
         decoded_actions_ugv = action[3:]
 
         # Execute the actions
-        done = self.action_manager.primitive_execution(decoded_actions_uav,
-                                                       decoded_actions_ugv, p,
-                                                       parameter_server)
+        self.action_manager.primitive_execution(decoded_actions_uav,
+                                                decoded_actions_ugv, self.p,
+                                                parameter_server)
         # Update state manager for progress
         self.state_manager.update_progress()
+
         # Get the new encoded state
         new_state = self.state.get_state()
+
         # Get reward
         reward = self.get_reward()
+
         # Is episode done
         done = self.check_episode_done()
 

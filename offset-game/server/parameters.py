@@ -21,10 +21,20 @@ class ParameterServer(object):
             param = self.action_param
         return param
 
+    def update(self):
+        self.state_param = {
+            'uav': self.uav,
+            'ugv': self.ugv,
+            'map': self.grid_map
+        }
+
     def update_state_param(self, uav, ugv, grid_map):
         self.uav = uav
         self.ugv = ugv
         self.map = grid_map
+
+        # Update parameters
+        self.update()
         return None
 
     def update_action_param(self, uav, ugv, grid_map):

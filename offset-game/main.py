@@ -26,7 +26,7 @@ with skip_run('run', 'learning tactic') as check, check():
     env = Benning.remote(config)
 
     # ['n_robots', 'primitive', 'target_node_id', 0, 0, 0]
-    net_output = [[20, 1, 38, 0, 0, 0], [10, 1, 39, 0, 0, 0],
+    net_output = [[20, 1, 38, 0, 0, 0], [10, 1, 39, 0, 0, 20],
                   [20, 1, 40, 0, 0, 0], [12, 1, 15, 0, 0, 0],
                   [9, 1, 12, 0, 0, 0], [4, 1, 11, 0, 0, 0]]
 

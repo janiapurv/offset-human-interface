@@ -37,10 +37,6 @@ class FormationControl():
         del_zeta_ij = (kl * max(0, f_g_ij)) * del_f_g_ij
         vel = path_vel - (alpha * del_zeta_ij) - (gamma * P_ij)
 
-        if vel_max is not None:
-            vel[0] = self.getFeasibleSpeed(vel[0], vel_max)
-            vel[1] = self.getFeasibleSpeed(vel[1], vel_max)
-
         return vel
 
     def getFeasibleSpeed(self, vel, vel_max):
@@ -75,13 +71,12 @@ class FormationControl():
         """
 
         # Parameters
-        vel_max = 100
         a = 3
         b = 3
         knn = 6
         vmax = vehicles[0].speed
-        alpha = 1
-        gamma = 1
+        alpha = 0.5
+        gamma = 0.5
         min_dis = 2
 
         all_drones_pose = np.zeros((len(vehicles), 2))
@@ -92,17 +87,21 @@ class FormationControl():
         for j, vehicle in enumerate(vehicles):
             path = np.array([next_pos[0], next_pos[1]]) - centroid_pos
             path_vel = (1 / dt) * path
+
+            if np.linalg.norm(path_vel) > vmax:
+                path_vel = (path_vel / np.linalg.norm(path_vel)) * vmax
+
             vel = self.get_vel(j, all_drones_pose, min_dis, centroid_pos,
-                               alpha, gamma, path_vel, vel_max, a, b, knn,
+                               alpha, gamma, path_vel * 0, vmax, a, b, knn,
                                formation_type)
             # Normalize the velocity
             if np.linalg.norm(vel) > vmax:
-                vel = (vmax / np.linalg.norm(vel)) * vel
+                vel = (vel / np.linalg.norm(vel)) * vmax
             vel_combined.append(vel)
 
             # New position
             new_pos = np.zeros(3)
-            new_pos[0:2] = vehicle.current_pos[0:2] + vel * dt
+            new_pos[0:2] = vehicle.current_pos[0:2] + (path_vel + vel) * dt
 
             # Update position
             if vehicle.type == 'uav':
@@ -114,7 +113,7 @@ class FormationControl():
 
         vel_combined = np.linalg.norm(np.array(vel_combined), axis=1)
 
-        if np.max(vel_combined) < 0.015 * len(all_drones_pose):
+        if np.max(vel_combined) < 0.0075 * len(all_drones_pose):
             formation_done = True
         else:
             formation_done = False
