@@ -10,11 +10,6 @@ class ParameterServer(object):
         self.targetpos = []
         self.primitive = []
         self.drone_num = []
-        self.state_param = {
-            'uav': self.uav,
-            'ugv': self.ugv,
-            'map': self.grid_map
-        }
         self.gui_param = {
             'target': self.targetpos,
             'primitive': self.primitive,
@@ -22,31 +17,86 @@ class ParameterServer(object):
         }
         return None
 
-    def get_parameters(self, parameter_type):
-        if parameter_type == 'state':
-            param = self.state_param
-        if parameter_type == 'gui':
-            param = self.gui_param
-        elif parameter_type == 'action':
-            param = self.action_param
-        return param
-
-    def update_state_param(self, uav, ugv, grid_map):
-        self.uav = uav
-        self.ugv = ugv
-        self.map = grid_map
-        self.state_param = {
-            'uav': self.uav,
-            'ugv': self.ugv,
-            'map': self.grid_map
+    def get_actions(self):
+        self.actions_uav = {
+            'uav_p_1': {
+                'primitive': 'planning',
+                'n_vehicles': 20,
+                'target_pos': [20, 120],
+                'vehicles_id': [],
+                'vehicles_type': 'uav',
+                'centroid_pos': [],
+                'platoon_id': 1
+            },
+            'uav_p_2': {
+                'primitive': 'planning',
+                'n_vehicles': 10,
+                'target_pos': [20, 120],
+                'vehicles_id': [],
+                'vehicles_type': 'uav',
+                'centroid_pos': [],
+                'platoon_id': 2
+            },
+            'uav_p_3': {
+                'primitive': 'planning',
+                'n_vehicles': 20,
+                'target_pos': [20, 120],
+                'vehicles_id': [],
+                'vehicles_type': 'uav',
+                'centroid_pos': [],
+                'platoon_id': 3
+            }
         }
+
+        self.actions_ugv = {
+            'ugv_p_1': {
+                'primitive': 'planning',
+                'n_vehicles': 12,
+                'target_pos': [20, 120],
+                'vehicles_id': [],
+                'vehicles_type': 'ugv',
+                'centroid_pos': [],
+                'platoon_id': 1
+            },
+            'ugv_p_2': {
+                'primitive': 'planning',
+                'n_vehicles': 9,
+                'target_pos': [20, 120],
+                'vehicles_id': [],
+                'vehicles_type': 'ugv',
+                'centroid_pos': [],
+                'platoon_id': 2
+            },
+            'ugv_p_3': {
+                'primitive': 'planning',
+                'n_vehicles': 4,
+                'target_pos': [20, 120],
+                'vehicles_id': [],
+                'vehicles_type': 'ugv',
+                'centroid_pos': [],
+                'platoon_id': 3
+            }
+        }
+        return self.actions_uav, self.actions_ugv
+
+    def set_actions(self, actions):
+        if actions['vehicles_type'] == 'uav':
+            key = 'uav_p_' + actions['platoon_id']
+            self.actions_uav[key] = actions
+        else:
+            key = 'ugv_p_' + actions['platoon_id']
+            self.actions_ugv = actions
         return None
 
-    def update_action_param(self, uav, ugv, grid_map):
+    def set_states(self, uav, ugv, grid_map):
         self.uav = uav
         self.ugv = ugv
         self.map = grid_map
+        self.states = {'uav': self.uav, 'ugv': self.ugv, 'map': self.grid_map}
         return None
+
+    def get_states(self):
+        return self.states
 
     def update_gui_param(self, targetpos, primitive, drone_num):
         self.targetpos = targetpos

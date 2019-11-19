@@ -2,6 +2,8 @@ import numpy as np
 
 from scipy import interpolate
 
+from .extract_info import action_parameters
+
 from primitives.planning.planners import SkeletonPlanning
 from primitives.formation.control import FormationControl
 
@@ -17,39 +19,37 @@ class PrimitiveManager(object):
         """
         self.config = state_manager.config
         self.state_manager = state_manager
+
+        # Instance of primitives
         self.planning = SkeletonPlanning(self.state_manager.config,
                                          self.state_manager.grid_map)
         self.formation = FormationControl()
         return None
 
-    def set_parameters(self, primitive_info):
+    def set_parameters(self, primitive_parameters):
         """Set up the parameters of the premitive execution
 
         Parameters
         ----------
-        primitive_info: dict
+        primitive_parameters : dict
             A dictionary containing information about vehicles
             and primitive realted parameters.
         """
-        # Update vehicles
-        self.vehicles_id = primitive_info['vehicles_id']
+        # Primitive parameters
+        self.parameters = primitive_parameters
+        self.execute = primitive_parameters['execute']
+        self.count = 0
 
-        if primitive_info['vehicle_type'] == 'uav':
+        if self.parameters['vehicles_type'] == 'uav':
             self.vehicles = [
-                self.state_manager.uav[j] for j in self.vehicles_id
+                self.state_manager.uav[j]
+                for j in self.parameters['vehicles_id']
             ]
         else:
             self.vehicles = [
-                self.state_manager.ugv[j] for j in self.vehicles_id
+                self.state_manager.ugv[j]
+                for j in self.parameters['vehicles_id']
             ]
-        self.n_vehicles = len(self.vehicles)
-
-        # Primitive parameters
-        self.primitive_id = primitive_info['primitive_id']
-        self.formation_type = primitive_info['formation_type']
-        self.end_pos = primitive_info['end_pos']
-        self.count = 0
-
         return None
 
     def make_vehicles_idle(self):
@@ -107,10 +107,11 @@ class PrimitiveManager(object):
             A list of points which are the fitted spline.
         """
         # Perform planning and fit a spline
-        self.start_pos = self.centroid_pos
-        pixel_start = self.convert_pixel_ordinate(self.start_pos,
+        self.parameters['start_pos'] = self.parameters['centroid_pos']
+        pixel_start = self.convert_pixel_ordinate(self.parameters['start_pos'],
                                                   ispixel=False)
-        pixel_end = self.convert_pixel_ordinate(self.end_pos, ispixel=False)
+        pixel_end = self.convert_pixel_ordinate(self.parameters['target_pos'],
+                                                ispixel=False)
         path = self.planning.find_path(pixel_start, pixel_end, spline=False)
 
         # Convert to cartesian co-ordinates
@@ -119,7 +120,8 @@ class PrimitiveManager(object):
             points[i, :] = self.convert_pixel_ordinate(point, ispixel=True)
 
         # Depending on the distance select number of points of the path
-        segment_length = np.linalg.norm(self.start_pos - self.end_pos)
+        segment_length = np.linalg.norm(self.parameters['start_pos'] -
+                                        self.parameters['target_pos'])
         n_steps = np.floor(segment_length / 200 * 250)
 
         if points.shape[0] > 3:
@@ -138,14 +140,22 @@ class PrimitiveManager(object):
         new_points = np.array([x_new, y_new]).T
         return new_points, points
 
-    def execute_primitive(self, p_simulation):
+    def execute_primitive(self, pb, ps):
         """Perform primitive execution
         """
-        primitives = [self.planning_primitive, self.formation_primitive]
-        done = primitives[self.primitive_id - 1]()
+        primitives = {
+            'planning': self.planning_primitive,
+            'formation': self.formation_primitive
+        }
+        done = primitives[self.parameters['primitive']]()
 
         # Step the simulation
-        p_simulation.stepSimulation()
+        pb.stepSimulation()
+
+        # Get the action from parameter server
+        actions = action_parameters(self.vehicles, self.parameters)
+        ps.set_actions.remote(actions)
+
         return done
 
     def planning_primitive(self):
@@ -157,26 +167,28 @@ class PrimitiveManager(object):
 
         if self.count == 0:
             # First point of formation
-            self.centroid_pos = self.get_centroid()
-            self.next_pos = self.centroid_pos
+            self.parameters['centroid_pos'] = self.get_centroid()
+            self.parameters['next_pos'] = self.parameters['centroid_pos']
             done = self.formation_primitive()
             if done:
                 self.count = 1
                 self.new_points, points = self.get_spline_points()
         else:
-            self.centroid_pos = self.get_centroid()
-            distance = np.linalg.norm(self.centroid_pos - self.end_pos)
+            self.parameters['centroid_pos'] = self.get_centroid()
+            distance = np.linalg.norm(self.parameters['centroid_pos'] -
+                                      self.parameters['target_pos'])
 
             if len(self.new_points) > 2 and distance > 5:
-                self.next_pos = self.new_points[0]
+                self.parameters['next_pos'] = self.new_points[0]
                 self.new_points = np.delete(self.new_points, 0, 0)
             else:
-                self.next_pos = self.end_pos
+                self.parameters['next_pos'] = self.parameters['target_pos']
             self.formation_primitive()
 
             if distance < 0.5:
                 done_rolling = True
 
+            print(self.parameters)
         if done_rolling:
             self.make_vehicles_idle()
 
@@ -185,15 +197,13 @@ class PrimitiveManager(object):
     def formation_primitive(self):
         """Performs formation primitive
         """
-        if self.primitive_id == 2:
-            self.centroid_pos = self.end_pos
-            self.next_pos = self.end_pos
+
+        self.formation_type = 'solid'  # a place holder
 
         dt = self.config['simulation']['time_step']
-        self.vehicles, done = self.formation.execute(self.vehicles,
-                                                     self.next_pos,
-                                                     self.centroid_pos, dt,
-                                                     self.formation_type)
+        self.vehicles, done = self.formation.execute(
+            self.vehicles, self.parameters['next_pos'],
+            self.parameters['centroid_pos'], dt, self.formation_type)
         for vehicle in self.vehicles:
             vehicle.set_position(vehicle.updated_pos)
         return done

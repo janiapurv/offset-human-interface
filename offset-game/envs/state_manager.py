@@ -191,7 +191,7 @@ class StateManager():
         for target in self.target:
             progress_goals = 0
             for vehicle in vehicles:
-                if self.check_vehicle(vehicle) == 'uav':
+                if self.check_vehicle_type(vehicle) == 'uav':
                     if self.check_closeness(vehicle, target):
                         progress_goals += self.outdoor_progress(
                             vehicle, target)
@@ -240,7 +240,7 @@ class StateManager():
             vehicle_count = 0
 
             for vehicle in vehicles:
-                if self.check_vehicle(vehicle) == 'ugv':
+                if self.check_vehicle_type(vehicle) == 'ugv':
                     if self.check_closeness(vehicle, target):
                         vehicle_count += 1
                         if target['n_defence_perimeter'] < vehicle_count:
