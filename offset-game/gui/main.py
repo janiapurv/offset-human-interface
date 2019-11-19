@@ -7,7 +7,7 @@ from .fullmap import FullMap
 pygame.init()
 
 
-class Main:
+class MainGUI(object):
     def __init__(self, screen_size):
         self.screen = pygame.display.set_mode(screen_size, pygame.RESIZABLE)
         self.screen.fill([255, 255, 255])
@@ -32,8 +32,3 @@ class Main:
                 self.fullmap.update()
                 pygame.display.update()
                 clock.tick(60)
-
-
-if __name__ == "__main__":
-    game = Main((750, 750))
-    game.run()

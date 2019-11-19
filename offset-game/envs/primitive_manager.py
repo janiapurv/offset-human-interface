@@ -8,6 +8,13 @@ from primitives.formation.control import FormationControl
 
 class PrimitiveManager(object):
     def __init__(self, state_manager):
+        """A base class to perform different primitives.
+
+        Parameters
+        ----------
+        state_manager : instance
+            An instance of state manager
+        """
         self.config = state_manager.config
         self.state_manager = state_manager
         self.planning = SkeletonPlanning(self.state_manager.config,
@@ -46,16 +53,22 @@ class PrimitiveManager(object):
         return None
 
     def make_vehicles_idle(self):
+        """Make the vehicles idle
+        """
         for vehicle in self.vehicles:
             vehicle.idle = True
         return None
 
     def make_vehicles_nonidle(self):
+        """Make the vehicles non-idle
+        """
         for vehicle in self.vehicles:
             vehicle.idle = False
         return None
 
     def get_centroid(self):
+        """Get the centroid of the vehicles
+        """
         centroid = []
         for vehicle in self.vehicles:
             centroid.append(vehicle.current_pos)
@@ -63,6 +76,21 @@ class PrimitiveManager(object):
         return centroid[0:2]  # only x and y
 
     def convert_pixel_ordinate(self, point, ispixel):
+        """Convert the given point from pixel to cartesian co-ordinate or vice-versa.
+
+        Parameters
+        ----------
+        point : list
+            A list containing x and y position in pixel or cartesian space.
+        ispixel : bool
+            If True, the given input 'point' is in pixel space
+            else it is in cartesian space.
+
+        Returns
+        -------
+        list
+            A converted point to pixel or cartesian space
+        """
         if not ispixel:
             converted = [point[0] / 0.42871 + 145, point[1] / 0.42871 + 115]
         else:
@@ -71,6 +99,13 @@ class PrimitiveManager(object):
         return converted
 
     def get_spline_points(self):
+        """Get the spline fit of path from start to end
+
+        Returns
+        -------
+        list
+            A list of points which are the fitted spline.
+        """
         # Perform planning and fit a spline
         self.start_pos = self.centroid_pos
         pixel_start = self.convert_pixel_ordinate(self.start_pos,
@@ -105,7 +140,7 @@ class PrimitiveManager(object):
 
     def execute_primitive(self, p_simulation):
         """Perform primitive execution
-            """
+        """
         primitives = [self.planning_primitive, self.formation_primitive]
         done = primitives[self.primitive_id - 1]()
 

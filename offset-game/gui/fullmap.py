@@ -16,6 +16,11 @@ class FullMap(pygame.sprite.Sprite):
         super().__init__()
         self.map_image = pygame.image.load("images/mapping_new.png")
         self.position = get_position(screen_size)
+
+        # Transform the image
+        self.map_image = pygame.transform.rotate(self.map_image, 90)
+        self.map_image = pygame.transform.flip(self.map_image, 0, 1)
+
         self.surface = pygame.Surface(get_window_size(screen_size))
         self.surface.fill(pygame.Color('dodgerblue'))
         self.screen = screen

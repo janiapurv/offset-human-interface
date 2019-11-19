@@ -62,13 +62,30 @@ class ActionManager(object):
             groupInfo[i, 5] = groupInfo[i, 5] * 0 + 600
         return robotInfo, groupInfo
 
-    def primitive_parameters(self, decode_actions, vehicles_id, type):
+    def primitive_parameters(self, decode_actions, vehicles_id, vehicle_type):
+        """Calculate the parameters needed to execute a particular primitive.
+
+        Parameters
+        ----------
+        decode_actions : list/array
+            The decoded actions array
+        vehicles_id : list
+            A list containing ids of all the vehicles in a primitive
+        vehicle_type : string
+            A string specifying the type of vehicle
+
+        Returns
+        -------
+        dict
+            A dictionary containing the parameters such as end position,
+            vehicle id, formation type, vehicle type etc.
+        """
         info = {}
         info['vehicles_id'] = vehicles_id
         info['primitive_id'] = -1
         info['end_pos'] = [0, 0]
         info['formation_type'] = None
-        info['vehicle_type'] = type
+        info['vehicle_type'] = vehicle_type
 
         # Decoded actions is of the form
         # ['n_vehicles', 'primitive_id', 'target_id']
@@ -166,7 +183,7 @@ class ActionManager(object):
         ----------
         decoded_actions_uav : array
             UAV decoded actions
-        decoded_actions_ugv : [type]
+        decoded_actions_ugv : array
             UAV decoded actions
         p_simulation : bullet engine
             Bullet engine to execute the simulation
@@ -181,33 +198,34 @@ class ActionManager(object):
             self.perform_marta_task_allocation(decoded_actions_uav,
                                                decoded_actions_ugv)
 
-        done_rolling_primitive = False
+        # Roll the primitives
+        done_rolling_primitives = False
         simulation_count = 0
 
-        # Execute them
-        for i in range(500):
+        while not done_rolling_primitives and simulation_count < 1000:
+            # Count number of steps
             simulation_count += 1
-            # Update the time
-            done = []
 
+            primitives_done = []
             # Update all the uav vehicles
             for i in range(self.config['simulation']['n_uav_platoons']):
                 if self.uav_platoon[i].n_vehicles > 0:
-                    done.append(
+                    primitives_done.append(
                         self.uav_platoon[i].execute_primitive(p_simulation))
 
             # Update all the ugv vehicles
             for i in range(self.config['simulation']['n_ugv_platoons']):
                 if self.ugv_platoon[i].n_vehicles > 0:
-                    done.append(
+                    primitives_done.append(
                         self.ugv_platoon[i].execute_primitive(p_simulation))
 
-            if all(item for item in done):
+            if all(item for item in primitives_done):
                 done_rolling_primitive = True
                 break
-            # p_simulation.stepSimulation()
 
+        # Update the time
         simulation_time = simulation_count * self.config['simulation'][
             'time_step']
         self.state_manager.current_time += simulation_time
+
         return done_rolling_primitive

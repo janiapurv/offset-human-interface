@@ -6,6 +6,7 @@ import ray
 
 from server.parameters import ParameterServer
 from envs.environments import Benning
+from gui.main import MainGUI
 
 from utils import skip_run
 
@@ -13,7 +14,7 @@ from utils import skip_run
 config_path = Path(__file__).parents[1] / 'offset-game/config.yml'
 config = yaml.load(open(str(config_path)), Loader=yaml.SafeLoader)
 
-with skip_run('run', 'learning tactic') as check, check():
+with skip_run('skip', 'Environment test') as check, check():
 
     # Initiate ray
     if not ray.is_initialized():
@@ -40,3 +41,6 @@ with skip_run('run', 'learning tactic') as check, check():
 
     # Shutdown ray
     ray.shutdown()
+
+with skip_run('run', 'GUI test') as check, check():
+    print('hello')

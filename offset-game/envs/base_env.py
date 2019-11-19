@@ -53,10 +53,10 @@ class BaseEnv(object):
         for i, item in enumerate(range(self.n_ugv)):
             position = self.get_initial_position(item, self.n_ugv)
             init_pos = [position[0] * 0.25 + 2.5, position[1] * 0.25, 5]
-            ugv.append(UGV(init_pos, init_orientation, i, self.config))
+            ugv.append(UGV(self.p, init_pos, init_orientation, i, self.config))
 
         for i, item in enumerate(range(self.n_uav)):
             position = self.get_initial_position(item, self.n_uav)
             init_pos = [position[0] * 0.25 + 2.5, position[1] * 0.25 - 1.5, 5]
-            uav.append(UAV(init_pos, init_orientation, i, self.config))
+            uav.append(UAV(self.p, init_pos, init_orientation, i, self.config))
         return uav, ugv
