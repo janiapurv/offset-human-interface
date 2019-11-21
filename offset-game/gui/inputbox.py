@@ -2,7 +2,6 @@ import pygame
 import pygame.font
 import pygame.event
 import pygame.draw
-from .ExtractionLayer import Extraction
 
 
 def get_key():

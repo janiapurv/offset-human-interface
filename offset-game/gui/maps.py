@@ -5,7 +5,6 @@ from matplotlib.image import imread
 
 from .task_allocation import TaskAllocation
 from .utils import (get_rectangle_param, MousePosition)
-from .ExtractionLayer import Extraction
 
 
 def mouse_draw(mouse_pos, surface):
@@ -117,7 +116,6 @@ class Map(pygame.sprite.Sprite):
         self.benning = Benning()
         self.allocate = TaskAllocation()
         self.pan_zoom = PanZoom(self.surface, self.screen_size, self.env_image)
-        self.ex = Extraction
 
     def get_env_image(self):
         arr = imread('offset-game/gui/Map/Benning.png')

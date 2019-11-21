@@ -1,7 +1,6 @@
 import pygame
 from .utils import Button
 # import gui.inputbox
-from .ExtractionLayer import Extraction
 
 
 def get_window_size(screen_size):
@@ -23,7 +22,6 @@ class Strategy(pygame.sprite.Sprite):
         self.surface.fill((0, 0, 0))
         self.screen = screen
         self.screen.blit(self.surface, self.position)
-        self.ex = Extraction
         self.ps = ps
 
     def path_planning(self, event):
@@ -59,7 +57,6 @@ class Strategy(pygame.sprite.Sprite):
         if button.pressed:
             action = str('formation')
             self.ex.Primative(action, self.ps)
-            # print(pygame.mouse.get_pos())
             button.indication(self.surface, self.position, icon_position)
 
     def target_search(self, event):

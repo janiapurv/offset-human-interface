@@ -3,8 +3,8 @@
 simulation:
   total_time: 600
   current_time: 0
-  time_step: 2.0
-  headless: False
+  time_step: 4.0
+  headless: True
   collision_free: True
   episodes: 100
   n_buildings: 15
@@ -19,6 +19,9 @@ simulation:
   n_uav_platoons: 3
   n_ugv_platoons: 3
 ##---------------------------------------------------------------------##
+experiment:
+  duration: 300
+##---------------------------------------------------------------------##
 # UAV and UGV parameters
 uav:
   speed: 5.0
@@ -31,6 +34,7 @@ ugv:
   defense_radius: 3
   max_formation_size: 10
   coef_slowness: 1.2
+
 ##---------------------------------------------------------------------##
 # Weigths parameters
 weights:
