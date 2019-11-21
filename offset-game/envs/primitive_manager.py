@@ -1,4 +1,5 @@
 import numpy as np
+import ray
 
 from scipy import interpolate
 
@@ -38,6 +39,8 @@ class PrimitiveManager(object):
         # Primitive parameters
         self.parameters = primitive_parameters
         self.execute = primitive_parameters['execute']
+        self.platoon_id = self.parameters['platoon_id']
+        self.vehicles_type = self.parameters['vehicles_type']
         self.count = 0
 
         if self.parameters['vehicles_type'] == 'uav':
@@ -119,24 +122,7 @@ class PrimitiveManager(object):
         for i, point in enumerate(path):
             points[i, :] = self.convert_pixel_ordinate(point, ispixel=True)
 
-        # Depending on the distance select number of points of the path
-        segment_length = np.linalg.norm(self.parameters['start_pos'] -
-                                        self.parameters['target_pos'])
-        n_steps = np.floor(segment_length / 200 * 250)
-
-        if points.shape[0] > 3:
-            tck, u = interpolate.splprep(points.T)
-            unew = np.linspace(u.min(), u.max(), n_steps)
-            x_new, y_new = interpolate.splev(unew, tck)
-            # points = interpcurve(250, x_new, y_new)
-            # x_new, y_new = points[:, 0], points[:, 1]
-        else:
-            # Find unique points
-            points = np.array(list(set(tuple(p) for p in points)))
-            f = interpolate.interp1d(points[:, 0], points[:, 1])
-            x_new = np.linspace(points[0, 0], points[-1, 0], 10)
-            y_new = f(x_new)
-
+        x_new, y_new = points[:, 0], points[:, 1]
         new_points = np.array([x_new, y_new]).T
         return new_points, points
 
@@ -147,18 +133,27 @@ class PrimitiveManager(object):
             'planning': self.planning_primitive,
             'formation': self.formation_primitive
         }
-        done = primitives[self.parameters['primitive']]()
 
-        # Step the simulation
-        pb.stepSimulation()
+        actions = ray.get(ps.get_actions.remote())
+        key = self.vehicles_type + '_p_' + str(self.parameters['platoon_id'])
+        self.parameters = actions[self.vehicles_type][key]
 
-        # Get the action from parameter server
-        actions = action_parameters(self.vehicles, self.parameters)
-        ps.set_actions.remote(actions)
+        if self.parameters['execute'] and self.parameters['n_vehicles'] > 0:
+            done = primitives[self.parameters['primitive']](ps)
+            # Step the simulation
+            pb.stepSimulation()
+            # Get the action from parameter server
+            actions = action_parameters(self.vehicles, self.parameters)
+            ps.set_actions.remote(actions)
+            ps.set_states.remote(self.state_manager.uav,
+                                 self.state_manager.ugv,
+                                 self.state_manager.grid_map)
+        else:
+            done = False
 
         return done
 
-    def planning_primitive(self):
+    def planning_primitive(self, ps):
         """Performs path planning primitive
         """
         # Make vehicles non idle
@@ -173,11 +168,11 @@ class PrimitiveManager(object):
             if done:
                 self.count = 1
                 self.new_points, points = self.get_spline_points()
+
         else:
             self.parameters['centroid_pos'] = self.get_centroid()
             distance = np.linalg.norm(self.parameters['centroid_pos'] -
                                       self.parameters['target_pos'])
-
             if len(self.new_points) > 2 and distance > 5:
                 self.parameters['next_pos'] = self.new_points[0]
                 self.new_points = np.delete(self.new_points, 0, 0)
@@ -185,12 +180,14 @@ class PrimitiveManager(object):
                 self.parameters['next_pos'] = self.parameters['target_pos']
             self.formation_primitive()
 
-            if distance < 0.5:
+            if distance < 1:
                 done_rolling = True
+                self.count = 0
 
-            print(self.parameters)
         if done_rolling:
             self.make_vehicles_idle()
+
+        # print(self.count)
 
         return done_rolling
 

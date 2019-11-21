@@ -1,3 +1,5 @@
+import time
+
 from .primitive_manager import PrimitiveManager
 from primitives.mrta.task_allocation import MRTA
 
@@ -48,26 +50,24 @@ class ActionManager(object):
         for key in self.uav_platoons:
             n_vehicles = decoded_actions_uav[key]['n_vehicles']
             # Execute only when there are more than 0 vehicles
-            if n_vehicles > 0:
-                vehicles_id = list(range(ids, ids + n_vehicles))
-                ids = ids + n_vehicles
-                decoded_actions_uav[key]['vehicles_id'] = vehicles_id
-                decoded_actions_uav[key]['execute'] = True
-            else:
+            if n_vehicles < 1:
                 decoded_actions_uav[key]['execute'] = False
+
+            vehicles_id = list(range(ids, ids + n_vehicles))
+            ids = ids + n_vehicles
+            decoded_actions_uav[key]['vehicles_id'] = vehicles_id
             self.uav_platoons[key].set_parameters(decoded_actions_uav[key])
 
         ids = 0
         for key in self.ugv_platoons:
             n_vehicles = decoded_actions_ugv[key]['n_vehicles']
             # Execute only when there are more than 0 vehicles
-            if n_vehicles > 0:
-                vehicles_id = list(range(ids, ids + n_vehicles))
-                ids = ids + n_vehicles
-                decoded_actions_ugv[key]['vehicles_id'] = vehicles_id
-                decoded_actions_ugv[key]['execute'] = True
-            else:
+            if n_vehicles < 1:
                 decoded_actions_ugv[key]['execute'] = False
+
+            vehicles_id = list(range(ids, ids + n_vehicles))
+            ids = ids + n_vehicles
+            decoded_actions_ugv[key]['vehicles_id'] = vehicles_id
             self.ugv_platoons[key].set_parameters(decoded_actions_ugv[key])
         return None
 
@@ -98,31 +98,34 @@ class ActionManager(object):
         # Roll the primitives
         done_rolling_primitives = False
         simulation_count = 0
+        start_time = time.time()
+        current_time = 0
+        duration = self.config['experiment']['duration']
 
-        while not done_rolling_primitives and simulation_count < 1000:
+        while not done_rolling_primitives and current_time <= duration:
             # Count number of steps
             simulation_count += 1
 
             primitives_done = []
             # Update all the uav vehicles and write to parameter server
             for key in self.uav_platoons:
-                if self.uav_platoons[key].execute:
-                    primitives_done.append(
-                        self.uav_platoons[key].execute_primitive(pb, ps))
+                primitives_done.append(
+                    self.uav_platoons[key].execute_primitive(pb, ps))
 
             # Update all the ugv vehicles and write to parameter server
             for key in self.ugv_platoons:
-                if self.ugv_platoons[key].execute:
-                    primitives_done.append(
-                        self.ugv_platoons[key].execute_primitive(pb, ps))
+                primitives_done.append(
+                    self.ugv_platoons[key].execute_primitive(pb, ps))
 
             if all(item for item in primitives_done):
-                done_rolling_primitive = True
+                done_rolling_primitives = True
                 break
+
+            current_time = time.time() - start_time
 
         # Update the time
         simulation_time = simulation_count * self.config['simulation'][
             'time_step']
         self.state_manager.current_time += simulation_time
 
-        return done_rolling_primitive
+        return done_rolling_primitives
