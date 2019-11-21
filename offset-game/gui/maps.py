@@ -37,11 +37,13 @@ class Benning(pygame.sprite.Sprite):
 
     def update_drones(self, surface, uav, ugv):
         temp = surface.copy()
-        color, color2 = (0, 255, 0), (0, 0, 255)
+        color, color2 = (0, 153, 76), (0, 0, 255)
         for vehicle in uav:
-            pos = [(vehicle.current_pos[1] / .2 + 420),
-                   vehicle.current_pos[0] / .2 + 340]
-            pygame.draw.rect(temp, color, pygame.Rect(pos, [5, 5]))
+            pos = [
+                int(vehicle.current_pos[1] / .2 + 420),
+                int(vehicle.current_pos[0] / .2 + 340)
+            ]
+            pygame.draw.circle(temp, color, pos, 3)
         for vehicle in ugv:
             pos = [(vehicle.current_pos[1] / .2 + 420),
                    vehicle.current_pos[0] / .2 + 340]
@@ -118,12 +120,12 @@ class Map(pygame.sprite.Sprite):
         self.pan_zoom = PanZoom(self.surface, self.screen_size, self.env_image)
 
     def get_env_image(self):
-        arr = imread('offset-game/gui/Map/Benning.png')
-        array = ((arr - arr.min()) *
-                 (1 / (arr.max() - arr.min()) * 255)).astype('uint8')
-        array = np.swapaxes(array, 0, 1)
-        image = pygame.surfarray.make_surface(array[:, :, 0:3])
-        # image = pygame.image.load('offset-game/gui/Map/Benning.png')
+        # arr = imread('offset-game/gui/images/Benning.png')
+        # array = ((arr - arr.min()) *
+        #          (1 / (arr.max() - arr.min()) * 255)).astype('uint8')
+        # array = np.swapaxes(array, 0, 1)
+        # image = pygame.surfarray.make_surface(array[:, :, 0:3])
+        image = pygame.image.load('offset-game/gui/images/Benning.png')
         return image
 
     def set_actions_execute(actions_uav, actions_ugv, ps, execute_action):
@@ -179,6 +181,8 @@ class Map(pygame.sprite.Sprite):
             map_pos = self.pan_zoom.get_current_map_pos()
             target_pos = [x - map_pos[0], y - map_pos[1]]
             self.allocate.assign_target(actions, target_pos, ps)
+            pygame.draw.circle(self.surface, (0, 0, 0), [x, y], 5)
+
         # Resume the game
         if keys[pygame.K_c]:
             for key in actions_uav:
@@ -188,4 +192,6 @@ class Map(pygame.sprite.Sprite):
                 actions_ugv[key]['execute'] = True
                 ps.set_actions.remote(actions_ugv[key])
 
-        self.screen.blit(self.surface, self.position)
+        result = self.screen.blit(self.surface, self.position)
+        # Update the surface
+        pygame.display.update(result)

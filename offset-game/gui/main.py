@@ -1,7 +1,6 @@
 import pygame
 import ray
 from .maps import Map
-from .task_allocation import TaskAllocation
 from .strategy import Strategy
 from .information import Information
 from .fullmap import FullMap
@@ -13,7 +12,7 @@ import time
 class MainGUI:
     def __init__(self, screen_size, ps):
         pygame.init()
-        self.screen = pygame.display.set_mode(screen_size)
+        self.screen = pygame.display.set_mode(screen_size, pygame.DOUBLEBUF)
         self.screen.fill([255, 255, 255])
         self.map = Map(self.screen, screen_size)
         self.strategy = Strategy(self.screen, screen_size, ps)
@@ -31,7 +30,6 @@ class MainGUI:
                     if event.key == pygame.K_ESCAPE:
                         pygame.quit()
                         return
-
             # Get latest states and actions
             states = ray.get(ps.get_states.remote())
             actions = ray.get(ps.get_actions.remote())
@@ -40,5 +38,5 @@ class MainGUI:
             self.map.update(states, actions, ps)
             self.strategy.update(event)
             self.fullmap.update()
-            pygame.display.update()
-            clock.tick(60)
+            pygame.display.flip()
+            clock.tick(20)

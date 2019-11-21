@@ -26,7 +26,7 @@ class Strategy(pygame.sprite.Sprite):
 
     def path_planning(self, event):
         SIZE = min(self.surface.get_size())
-        path = 'offset-game/gui/Images/path_planning.png'
+        path = 'offset-game/gui/images/path_planning.png'
         icon_position = ((self.size[0] / 5) - 50, 35)
         button = Button(self.surface, icon_position, (SIZE, SIZE), path,
                         str('path_panning'))
@@ -37,7 +37,7 @@ class Strategy(pygame.sprite.Sprite):
 
     def mapping(self, event):
         SIZE = min(self.surface.get_size())
-        path = 'offset-game/gui/Images/mapping.png'
+        path = 'offset-game/gui/images/mapping.png'
         icon_position = ((2 * self.size[0] / 5) - 50, 35)
         button = Button(self.surface, icon_position, (SIZE, SIZE), path,
                         str('mapping'))
@@ -49,7 +49,7 @@ class Strategy(pygame.sprite.Sprite):
 
     def formation(self, event):
         SIZE = min(self.surface.get_size())
-        path = 'offset-game/gui/Images/formation.png'
+        path = 'offset-game/gui/images/formation.png'
         icon_position = ((3 * self.size[0] / 5) - 50, 35)
         button = Button(self.surface, icon_position, (SIZE, SIZE), path,
                         str('formation'))
@@ -61,7 +61,7 @@ class Strategy(pygame.sprite.Sprite):
 
     def target_search(self, event):
         SIZE = min(self.surface.get_size())
-        path = 'offset-game/gui/Images/target_search.png'
+        path = 'offset-game/gui/images/target_search.png'
         icon_position = ((4 * self.size[0] / 5) - 50, 35)
         button = Button(self.surface, icon_position, (SIZE, SIZE), path,
                         str('target_search'))
