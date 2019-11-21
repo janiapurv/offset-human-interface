@@ -1,13 +1,14 @@
 from pathlib import Path
 
 import numpy as np
-import pybullet as p
 
 
-class UGV():
-    """The class is the interface to a single robot
+class UGV(object):
+    """This the base class for single UGV robot
     """
-    def __init__(self, init_pos, init_orientation, robot_id, config):
+    def __init__(self, pb, init_pos, init_orientation, robot_id, config):
+        self.p = pb
+
         # Properties UGV
         self.vehicle_id = robot_id
         self.init_pos = init_pos
@@ -31,22 +32,25 @@ class UGV():
         self._initial_setup()
 
     def _initial_setup(self):
+        """Initial step of objects and constraints
+        """
         if self.config['simulation']['collision_free']:
             path = Path(__file__).parents[
                 0] / 'urdf/ground_vehicle_collision_free.urdf'
         else:
             path = Path(__file__).parents[0] / 'urdf/ground_vehicle.urdf'
-        self.object_id = p.loadURDF(str(path), self.init_pos,
-                                    self.init_orientation)
-        self.constraint = p.createConstraint(self.object_id, -1, -1, -1,
-                                             p.JOINT_FIXED, [0, 0, 0],
-                                             [0, 0, 0], self.init_pos)
+        self.object_id = self.p.loadURDF(str(path), self.init_pos,
+                                         self.init_orientation)
+        self.constraint = self.p.createConstraint(self.object_id, -1, -1, -1,
+                                                  self.p.JOINT_FIXED,
+                                                  [0, 0, 0], [0, 0, 0],
+                                                  self.init_pos)
         return None
 
     def reset(self):
         """Moves the robot back to its initial position
         """
-        p.changeConstraint(self.constraint, self.init_pos)
+        self.p.changeConstraint(self.constraint, self.init_pos)
         self.current_pos = self.init_pos
         self.updated_pos = self.init_pos
         return None
@@ -55,8 +59,8 @@ class UGV():
         """
         Returns the position and orientation (as Yaw angle) of the robot.
         """
-        pos, rot = p.getBasePositionAndOrientation(self.object_id)
-        euler = p.getEulerFromQuaternion(rot)
+        pos, rot = self.p.getBasePositionAndOrientation(self.object_id)
+        euler = self.p.getEulerFromQuaternion(rot)
         return np.array(pos), euler[2]
 
     def get_info(self):
@@ -88,14 +92,15 @@ class UGV():
         """
         pos, _ = self.get_pos_and_orientation()
         self.current_pos = pos
-        p.changeConstraint(self.constraint, position)
+        self.p.changeConstraint(self.constraint, position)
         return None
 
 
-class UAV():
-    """The class is the interface to a single robot
+class UAV(object):
+    """This the base class for single UGV robot
     """
-    def __init__(self, init_pos, init_orientation, robot_id, config):
+    def __init__(self, pb, init_pos, init_orientation, robot_id, config):
+        self.p = pb
         # Properties UGV
         self.vehicle_id = robot_id
         self.init_pos = init_pos
@@ -117,22 +122,25 @@ class UAV():
         self._initial_setup()
 
     def _initial_setup(self):
+        """Initial step of objects and constraints
+        """
         if self.config['simulation']['collision_free']:
             path = Path(
                 __file__).parents[0] / 'urdf/arial_vehicle_collision_free.urdf'
         else:
             path = Path(__file__).parents[0] / 'urdf/arial_vehicle.urdf'
-        self.object_id = p.loadURDF(str(path), self.init_pos,
-                                    self.init_orientation)
-        self.constraint = p.createConstraint(self.object_id, -1, -1, -1,
-                                             p.JOINT_FIXED, [0, 0, 0],
-                                             [0, 0, 0], self.init_pos)
+        self.object_id = self.p.loadURDF(str(path), self.init_pos,
+                                         self.init_orientation)
+        self.constraint = self.p.createConstraint(self.object_id, -1, -1, -1,
+                                                  self.p.JOINT_FIXED,
+                                                  [0, 0, 0], [0, 0, 0],
+                                                  self.init_pos)
         return None
 
     def reset(self):
         """Moves the robot back to its initial position
         """
-        p.changeConstraint(self.constraint, self.init_pos)
+        self.p.changeConstraint(self.constraint, self.init_pos)
         self.current_pos = self.init_pos
         self.updated_pos = self.init_pos
         return None
@@ -140,8 +148,8 @@ class UAV():
     def get_pos_and_orientation(self):
         """Returns the position and orientation (as Yaw angle) of the robot.
         """
-        pos, rot = p.getBasePositionAndOrientation(self.object_id)
-        euler = p.getEulerFromQuaternion(rot)
+        pos, rot = self.p.getBasePositionAndOrientation(self.object_id)
+        euler = self.p.getEulerFromQuaternion(rot)
         return np.array(pos), euler[2]
 
     def get_info(self):
@@ -173,6 +181,6 @@ class UAV():
         """
         pos, _ = self.get_pos_and_orientation()
         self.current_pos = pos
-        p.changeConstraint(self.constraint, position)
+        self.p.changeConstraint(self.constraint, position)
 
         return None

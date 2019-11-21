@@ -12,12 +12,11 @@ class MousePosition:
             self.pos.append(pygame.mouse.get_pos())
         else:
             self.pos = []
-
         return self.pos
 
 
 class Button(object):
-    def __init__(self, surface, icon_position, size, image_path):
+    def __init__(self, surface, icon_position, size, image_path, action):
         # create 3 images
         image = pygame.image.load(image_path)
         self.icon = pygame.transform.scale(
@@ -26,6 +25,7 @@ class Button(object):
         self.surface = surface
         surface.blit(self.icon, icon_position)
         self.pressed = False
+        self.action = action
 
     def indication(self, surface, position, icon_position):
         x_pos = position[0] + icon_position[0]

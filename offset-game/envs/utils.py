@@ -6,6 +6,22 @@ import matplotlib.pyplot as plt
 
 
 def interpcurve(N, pX, pY):
+    """Interpolate evenly spaced points on a spline
+
+    Parameters
+    ----------
+    N : int
+        Number of evenly spaced points
+    pX : array
+        An array of x co-ordinates
+    pY : array
+        An array of y co-ordinates
+
+    Returns
+    -------
+    array
+        A array with evenly spaced points on the spline.
+    """
     # Equally spaced in arclength
     N = np.transpose(np.linspace(0, 1, N))
 

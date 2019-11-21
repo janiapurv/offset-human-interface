@@ -2,19 +2,20 @@ import pygame
 
 
 def get_window_size(screen_size):
-    size = (0.225 * screen_size[0], 0.225 * screen_size[1])
+    size = (.247 * screen_size[0], 0.225 * screen_size[1])
     return size
 
 
 def get_position(screen_size):
-    position = (10 + 0.75 * screen_size[0], 10 + 0.75 * screen_size[1])
+    position = (-5 + .6 * screen_size[0] - .24 * screen_size[0],
+                10 + 0.75 * screen_size[1])
     return position
 
 
 class FullMap(pygame.sprite.Sprite):
     def __init__(self, screen, screen_size):
         super().__init__()
-        self.map_image = pygame.image.load("images/mapping_new.png")
+        self.map_image = pygame.image.load('offset-game/gui/Map/Benning.png')
         self.position = get_position(screen_size)
         self.surface = pygame.Surface(get_window_size(screen_size))
         self.surface.fill(pygame.Color('dodgerblue'))

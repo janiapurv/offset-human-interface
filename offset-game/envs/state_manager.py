@@ -21,12 +21,15 @@ class StateManager():
         return None
 
     def _initial_mission_setup(self):
+        """Perform initial setup such as progress, reward, grid map etc.
+        """
         self.grid_map = np.load(self.config['map_save_path'] +
                                 'occupancy_map.npy')
         self.goal = self.config['simulation']['goal_node']
         self.progress_reward = self.config['reward']['progress_reward']
         self.indoor_reward = 2 * self.progress_reward
         self.n_keep_in_pareto = self.config['state']['n_keep_in_pareto']
+        return None
 
     def _initial_nodes_setup(self):
         """Performs initial nodes setup
@@ -45,6 +48,8 @@ class StateManager():
         return None
 
     def _initial_buildings_setup(self):
+        """Perfrom initial building setup.
+        """
         # Buildings setup (probably we might need to read it from a file)
         self.buildings = []
         path = self.config['map_data_path'] + 'buildings.csv'
@@ -138,7 +143,19 @@ class StateManager():
             if target['target_id'] == id:
                 return target
 
-    def check_vehicle(self, vehicle):
+    def check_vehicle_type(self, vehicle):
+        """Check the vehicle type
+
+        Parameters
+        ----------
+        vehicle : instance
+            An instance of vehicle class UAV or UGV
+
+        Returns
+        -------
+        string/None
+            Return vehicle type if the vehicle is idle
+        """
         if (not vehicle.idle) and vehicle.type == 'uav':
             return 'uav'
         elif (not vehicle.idle) and vehicle.type == 'ugv':
@@ -174,7 +191,7 @@ class StateManager():
         for target in self.target:
             progress_goals = 0
             for vehicle in vehicles:
-                if self.check_vehicle(vehicle) == 'uav':
+                if self.check_vehicle_type(vehicle) == 'uav':
                     if self.check_closeness(vehicle, target):
                         progress_goals += self.outdoor_progress(
                             vehicle, target)
@@ -223,7 +240,7 @@ class StateManager():
             vehicle_count = 0
 
             for vehicle in vehicles:
-                if self.check_vehicle(vehicle) == 'ugv':
+                if self.check_vehicle_type(vehicle) == 'ugv':
                     if self.check_closeness(vehicle, target):
                         vehicle_count += 1
                         if target['n_defence_perimeter'] < vehicle_count:

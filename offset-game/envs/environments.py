@@ -84,44 +84,40 @@ class Benning(BaseEnv):
         for vehicle in self.state_manager.ugv:
             vehicle.reset()
 
-        for i in range(200):
+        for i in range(50):
             time.sleep(1 / 240)
             self.p.stepSimulation()
 
         # Update parameter server
-        ps.update_state_param.remote(self.state_manager.uav,
-                                     self.state_manager.uav,
-                                     self.state_manager.grid_map)
+        ps.set_states.remote(self.state_manager.uav, self.state_manager.ugv,
+                             self.state_manager.grid_map)
 
         # call the state manager
         state = 0  # self.state.get_state()
         done = False
         return state, done
 
-    def step(self, parameter_server, action):
+    def step(self, parameter_server):
         """Take a step in the environement
         """
         # Get the action from parameter server
-
-        # Action splitting
-        decoded_actions_uav = action[0:3]
-        decoded_actions_ugv = action[3:]
+        actions = ray.get(parameter_server.get_actions.remote())
+        actions_uav, actions_ugv = actions['uav'], actions['ugv']
 
         # Execute the actions
-        self.action_manager.primitive_execution(decoded_actions_uav,
-                                                decoded_actions_ugv, self.p,
-                                                parameter_server)
-        # Update state manager for progress
-        self.state_manager.update_progress()
+        self.action_manager.primitive_execution(actions_uav, actions_ugv,
+                                                self.p, parameter_server)
+        # # Update state manager for progress
+        # self.state_manager.update_progress()
 
-        # Get the new encoded state
-        new_state = self.state.get_state()
+        # # Get the new encoded state
+        new_state = 0  # self.state.get_state()
 
-        # Get reward
-        reward = self.get_reward()
+        # # Get reward
+        reward = 0  # self.get_reward()
 
-        # Is episode done
-        done = self.check_episode_done()
+        # # Is episode done
+        done = 0  # self.check_episode_done()
 
         return new_state, reward, done
 
