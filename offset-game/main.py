@@ -26,12 +26,12 @@ with skip_run('run', 'Game Test') as check, check():
     env = Benning.remote(config)
 
     # Instantiate GUI
-    gui = MainGUI.remote((1500, 750), ps)
+    gui = MainGUI.remote(config, (1500, 750), ps)
 
     start_time = time.time()
     gui_run_id = gui.run.remote(ps)
     env_run_id = env.step.remote(ps)
-    ray.wait([env_run_id])
+    ray.wait([env_run_id, gui_run_id])
     print(time.time() - start_time)
 
     # Shutdown ray
