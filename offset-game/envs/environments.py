@@ -119,7 +119,7 @@ class Benning(BaseEnv):
         # # Is episode done
         done = 0  # self.check_episode_done()
 
-        return new_state, reward, done
+        return None
 
     def check_episode_done(self):
         done = False

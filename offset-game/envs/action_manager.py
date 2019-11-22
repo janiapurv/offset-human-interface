@@ -37,7 +37,7 @@ class ActionManager(object):
 
     def perform_task_allocation(self, decoded_actions_uav,
                                 decoded_actions_ugv):
-        """Perfroms task allocation using MRTA
+        """Perfroms task allocation
 
         Parameters
         ----------
@@ -56,7 +56,7 @@ class ActionManager(object):
             vehicles_id = list(range(ids, ids + n_vehicles))
             ids = ids + n_vehicles
             decoded_actions_uav[key]['vehicles_id'] = vehicles_id
-            self.uav_platoons[key].set_parameters(decoded_actions_uav[key])
+            self.uav_platoons[key].set_action(decoded_actions_uav[key])
 
         ids = 0
         for key in self.ugv_platoons:
@@ -68,7 +68,7 @@ class ActionManager(object):
             vehicles_id = list(range(ids, ids + n_vehicles))
             ids = ids + n_vehicles
             decoded_actions_ugv[key]['vehicles_id'] = vehicles_id
-            self.ugv_platoons[key].set_parameters(decoded_actions_ugv[key])
+            self.ugv_platoons[key].set_action(decoded_actions_ugv[key])
         return None
 
     def primitive_execution(self,

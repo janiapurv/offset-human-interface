@@ -1,5 +1,7 @@
 import pygame
+
 import ray
+
 from .maps import Map
 from .strategy import Strategy
 from .information import Information
@@ -30,13 +32,16 @@ class MainGUI:
                     if event.key == pygame.K_ESCAPE:
                         pygame.quit()
                         return
+
             # Get latest states and actions
-            states = ray.get(ps.get_states.remote())
-            actions = ray.get(ps.get_actions.remote())
+            states_id = ps.get_states.remote()
+            actions_id = ps.get_actions.remote()
+
+            states, actions = ray.get([states_id, actions_id])
 
             # Update all the modules
-            self.map.update(states, actions, ps)
+            self.map.update(event, states, actions, ps)
             self.strategy.update(event)
             self.fullmap.update()
-            pygame.display.flip()
-            clock.tick(20)
+            pygame.display.update()
+            clock.tick(60)

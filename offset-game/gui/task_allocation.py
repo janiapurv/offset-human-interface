@@ -1,5 +1,4 @@
 import pygame
-
 import numpy as np
 from matplotlib.path import Path
 
@@ -20,8 +19,7 @@ class TaskAllocation(pygame.sprite.Sprite):
         return None
 
     def get_enclosed_centorid(self, rectangle, actions):
-        actions_uav = actions['uav']
-        actions_ugv = actions['ugv']
+        actions_uav, actions_ugv = actions['uav'], actions['ugv']
         centroid = {}
         for key in actions_uav:
             centroid[key] = actions_uav[key]['centroid_pos']

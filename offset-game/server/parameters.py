@@ -17,6 +17,7 @@ class ParameterServer(object):
                 'vehicles_type': 'uav',
                 'centroid_pos': [-1000, -1000],
                 'platoon_id': 1,
+                'initial_formation': True,
                 'execute': True
             },
             'uav_p_2': {
@@ -27,6 +28,7 @@ class ParameterServer(object):
                 'vehicles_type': 'uav',
                 'centroid_pos': [-1000, -1000],
                 'platoon_id': 2,
+                'initial_formation': True,
                 'execute': True
             },
             'uav_p_3': {
@@ -37,6 +39,7 @@ class ParameterServer(object):
                 'vehicles_type': 'uav',
                 'centroid_pos': [-1000, -1000],
                 'platoon_id': 3,
+                'initial_formation': True,
                 'execute': True
             }
         }
@@ -44,12 +47,13 @@ class ParameterServer(object):
         self.actions_ugv = {
             'ugv_p_1': {
                 'primitive': 'planning',
-                'n_vehicles': 12,
+                'n_vehicles': 0,
                 'target_pos': [20, 50],
                 'vehicles_id': [],
                 'vehicles_type': 'ugv',
                 'centroid_pos': [-1000, -1000],
                 'platoon_id': 1,
+                'initial_formation': True,
                 'execute': True
             },
             'ugv_p_2': {
@@ -60,6 +64,7 @@ class ParameterServer(object):
                 'vehicles_type': 'ugv',
                 'centroid_pos': [-1000, -1000],
                 'platoon_id': 2,
+                'initial_formation': True,
                 'execute': True
             },
             'ugv_p_3': {
@@ -70,6 +75,7 @@ class ParameterServer(object):
                 'vehicles_type': 'ugv',
                 'centroid_pos': [-1000, -1000],
                 'platoon_id': 3,
+                'initial_formation': True,
                 'execute': True
             }
         }
@@ -87,6 +93,13 @@ class ParameterServer(object):
         else:
             key = 'ugv_p_' + str(actions['platoon_id'])
             self.actions_ugv[key] = actions
+        return None
+
+    def update_actions(self, actions_uav, actions_ugv):
+        for key in actions_uav:
+            self.actions_uav[key] = actions_uav[key]
+        for key in actions_ugv:
+            self.actions_ugv[key] = actions_ugv[key]
         return None
 
     def set_states(self, uav, ugv, grid_map):

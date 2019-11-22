@@ -1,7 +1,6 @@
 import pygame
 
-import numpy as np
-from matplotlib.image import imread
+import ray
 
 from .task_allocation import TaskAllocation
 from .utils import (get_rectangle_param, MousePosition)
@@ -79,18 +78,21 @@ class PanZoom(pygame.sprite.Sprite):
         width = env_surface.get_rect().width
         height = env_surface.get_rect().height
 
-        if len(mouse_pos) > 0:
-            intial_mouse = mouse_pos[0]
+        if len(mouse_pos) > 1:
+            intial_mouse = mouse_pos[-2]
             final_mouse = mouse_pos[-1]
             dx_mouse = final_mouse[0] - intial_mouse[0]
             dy_mouse = final_mouse[1] - intial_mouse[1]
+        else:
+            dx_mouse = 0
+            dy_mouse = 0
 
-            # Update the map pose
-            self.map_pos[0] = dx_mouse / 3 + self.map_pos[0]
-            self.map_pos[1] = dy_mouse / 3 + self.map_pos[1]
+        # Update the map pose
+        self.map_pos[0] = dx_mouse + self.map_pos[0]
+        self.map_pos[1] = dy_mouse + self.map_pos[1]
 
-            # Check is the map of out of boundary
-            self.check_map_pos(width, height)
+        # Check is the map of out of boundary
+        self.check_map_pos(width, height)
 
         self.surface.blit(env_surface, self.map_pos)
         return None
@@ -125,10 +127,13 @@ class Map(pygame.sprite.Sprite):
         #          (1 / (arr.max() - arr.min()) * 255)).astype('uint8')
         # array = np.swapaxes(array, 0, 1)
         # image = pygame.surfarray.make_surface(array[:, :, 0:3])
-        image = pygame.image.load('offset-game/gui/images/Benning.png')
+        image = pygame.image.load(
+            'offset-game/gui/images/Benning.png').convert()
         return image
 
-    def set_actions_execute(actions_uav, actions_ugv, ps, execute_action):
+    def set_actions_execute(actions, ps, execute_action):
+        actions = ray.get(actions)
+        actions_uav, actions_ugv = actions['uav'], actions['ugv']
         for key in actions_uav:
             actions_uav[key]['execute'] = execute_action
             ps.set_actions.remote(actions_uav[key])
@@ -137,30 +142,24 @@ class Map(pygame.sprite.Sprite):
             ps.set_actions.remote(actions_ugv[key])
         return None
 
-    def update(self, states, actions, ps):
-        x, y = pygame.mouse.get_pos()
-        keys = pygame.key.get_pressed()
+    def update(self, event, states, actions, ps):
         mouse_button = pygame.mouse.get_pressed()
 
         # Get states
-        states_uav = states['uav']
-        states_ugv = states['ugv']
+        states_uav, states_ugv = states['uav'], states['ugv']
         env_updated = self.benning.update_drones(self.env_image, states_uav,
                                                  states_ugv)
         self.pan_zoom.pan(self.mouse_0.position(), env_updated)
 
-        # Get states
-        actions_uav = actions['uav']
-        actions_ugv = actions['ugv']
-
         # Pause the game
-        if keys[pygame.K_x]:
-            for key in actions_uav:
-                actions_uav[key]['execute'] = False
-                ps.set_actions.remote(actions_uav[key])
-            for key in actions_ugv:
-                actions_ugv[key]['execute'] = False
-                ps.set_actions.remote(actions_ugv[key])
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_x:
+                actions_uav, actions_ugv = actions['uav'], actions['ugv']
+                for key in actions_uav:
+                    actions_uav[key]['execute'] = False
+                for key in actions_ugv:
+                    actions_ugv[key]['execute'] = False
+                ps.update_actions.remote(actions_uav, actions_ugv)
 
         # Task allocation
         mouse_draw(self.mouse_2.position(), self.surface)
@@ -184,13 +183,17 @@ class Map(pygame.sprite.Sprite):
             pygame.draw.circle(self.surface, (0, 0, 0), [x, y], 5)
 
         # Resume the game
-        if keys[pygame.K_c]:
-            for key in actions_uav:
-                actions_uav[key]['execute'] = True
-                ps.set_actions.remote(actions_uav[key])
-            for key in actions_ugv:
-                actions_ugv[key]['execute'] = True
-                ps.set_actions.remote(actions_ugv[key])
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_c:
+                # Get actions
+                actions_uav, actions_ugv = actions['uav'], actions['ugv']
+                for key in actions_uav:
+                    actions_uav[key]['execute'] = True
+                    actions_uav[key]['initial_formation'] = True
+                for key in actions_ugv:
+                    actions_ugv[key]['execute'] = True
+                    actions_ugv[key]['initial_formation'] = True
+                ps.update_actions.remote(actions_uav, actions_ugv)
 
         result = self.screen.blit(self.surface, self.position)
         # Update the surface

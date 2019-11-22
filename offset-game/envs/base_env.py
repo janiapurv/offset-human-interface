@@ -4,7 +4,7 @@ import numpy as np
 
 import pybullet as p
 import pybullet_data
-import pybullet_utils.bullet_client as bc
+from pybullet_utils import bullet_client
 
 
 class BaseEnv(object):
@@ -12,9 +12,9 @@ class BaseEnv(object):
         self.config = config
         # Usage mode
         if config['simulation']['headless']:
-            self.p = bc.BulletClient(connection_mode=p.DIRECT)
+            self.p = bullet_client.BulletClient(connection_mode=p.DIRECT)
         else:
-            self.p = bc.BulletClient(connection_mode=p.GUI)
+            self.p = bullet_client.BulletClient(connection_mode=p.GUI)
             self.p.resetDebugVisualizerCamera(cameraDistance=150,
                                               cameraYaw=0,
                                               cameraPitch=-89.999,
