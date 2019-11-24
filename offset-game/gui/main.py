@@ -28,9 +28,6 @@ class MainGUI:
 
         while (time.time() -
                start_time) < self.config['experiment']['duration']:
-            pause = False
-            resume = False
-            pygame.key.set_repeat(10, 10)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     return
@@ -38,21 +35,14 @@ class MainGUI:
                     if event.key == pygame.K_ESCAPE:
                         pygame.quit()
                         return
-                    elif event.key == pygame.K_SPACE:
-                        pause = True
-                    elif event.key == pygame.K_c:
-                        resume = True
-
-            events = [pause, resume]
             # Get latest states and actions
             states_id = ps.get_states.remote()
             actions_id = ps.get_actions.remote()
-
             states, actions = ray.get([states_id, actions_id])
 
             # Update all the modules
-            self.map.update(events, states, actions, ps)
+            self.map.update(states, actions, ps)
             self.strategy.update(event)
             self.fullmap.update()
-            pygame.display.update()
+            pygame.display.flip()
             clock.tick(60)

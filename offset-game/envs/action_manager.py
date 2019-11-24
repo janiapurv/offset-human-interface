@@ -25,7 +25,7 @@ class ActionManager(object):
 
         """
         self.uav_platoons = {}
-        for i in range(self.config['simulation']['n_ugv_platoons']):
+        for i in range(self.config['simulation']['n_uav_platoons']):
             key = 'uav_p_' + str(i + 1)
             self.uav_platoons[key] = PrimitiveManager(self.state_manager)
 
@@ -65,6 +65,7 @@ class ActionManager(object):
             if n_vehicles < 1:
                 decoded_actions_ugv[key]['execute'] = False
 
+            # Set number of vehicles
             vehicles_id = list(range(ids, ids + n_vehicles))
             ids = ids + n_vehicles
             decoded_actions_ugv[key]['vehicles_id'] = vehicles_id

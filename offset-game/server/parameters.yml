@@ -1,0 +1,23 @@
+##---------------------------------------------------------------------##
+# Parameter fields
+uav:
+  primitive: 'planning'
+  n_vehicles: 10
+  target_pos: [20, 50]
+  vehicles_id: []
+  vehicles_type: 'uav'
+  centroid_pos: [0, 0]
+  platoon_id: 0
+  initial_formation: True
+  execute: True
+##---------------------------------------------------------------------##
+ugv:
+  primitive: 'planning'
+  n_vehicles: 0
+  target_pos: [20, 50]
+  vehicles_id: []
+  vehicles_type: 'ugv'
+  centroid_pos: [0, 0]
+  platoon_id: 0
+  initial_formation: True
+  execute: True

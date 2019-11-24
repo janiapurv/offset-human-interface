@@ -107,18 +107,6 @@ class Benning(BaseEnv):
         # Execute the actions
         self.action_manager.primitive_execution(actions_uav, actions_ugv,
                                                 self.p, parameter_server)
-        # # Update state manager for progress
-        # self.state_manager.update_progress()
-
-        # # Get the new encoded state
-        new_state = 0  # self.state.get_state()
-
-        # # Get reward
-        reward = 0  # self.get_reward()
-
-        # # Is episode done
-        done = 0  # self.check_episode_done()
-
         return None
 
     def check_episode_done(self):

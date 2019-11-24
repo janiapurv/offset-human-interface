@@ -44,7 +44,13 @@ class TaskAllocation(pygame.sprite.Sprite):
                 else:
                     selected_platoon['ugv'].append(keys)
 
-        return selected_platoon
+        if mask.any():
+            # Swap the x and y co-ordinates
+            pixel_centroid = centroid_values_pixel[mask].astype(int)
+        else:
+            pixel_centroid = []
+
+        return selected_platoon, pixel_centroid
 
     def convert_points_path(self, points):
         x, y = points[1], points[0]
@@ -55,10 +61,9 @@ class TaskAllocation(pygame.sprite.Sprite):
 
     def select_platoon(self, states, actions, rectangle):
         rectangle_pixel = self.convert_points_path(rectangle)
-        self.selected_platoon = self.get_enclosed_centorid(
+        self.selected_platoon, pixel_centroid = self.get_enclosed_centorid(
             rectangle_pixel, actions)
-
-        return None
+        return pixel_centroid
 
     def assign_target(self, actions, target_pos, ps):
         for key in self.selected_platoon:
@@ -69,4 +74,6 @@ class TaskAllocation(pygame.sprite.Sprite):
                     target_pos = [(target_pos[1] - 340) * 0.2,
                                   (target_pos[0] - 420) * 0.2]
                     actions[key][value]['target_pos'] = target_pos
+
                     ps.set_actions.remote(actions[key][value])
+        return None

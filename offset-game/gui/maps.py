@@ -1,7 +1,5 @@
 import pygame
 
-import ray
-
 from .task_allocation import TaskAllocation
 from .utils import (get_rectangle_param, MousePosition)
 
@@ -121,6 +119,9 @@ class Map(pygame.sprite.Sprite):
         self.allocate = TaskAllocation()
         self.pan_zoom = PanZoom(self.surface, self.screen_size, self.env_image)
 
+        # Some color
+        self.BLACK = (0, 0, 0)
+
     def get_env_image(self):
         # arr = imread('offset-game/gui/images/Benning.png')
         # array = ((arr - arr.min()) *
@@ -131,20 +132,7 @@ class Map(pygame.sprite.Sprite):
             'offset-game/gui/images/Benning.png').convert()
         return image
 
-    def set_actions_execute(actions, ps, execute_action):
-        actions = ray.get(actions)
-        actions_uav, actions_ugv = actions['uav'], actions['ugv']
-        for key in actions_uav:
-            actions_uav[key]['execute'] = execute_action
-            ps.set_actions.remote(actions_uav[key])
-        for key in actions_ugv:
-            actions_ugv[key]['execute'] = execute_action
-            ps.set_actions.remote(actions_ugv[key])
-        return None
-
-    def update(self, events, states, actions, ps):
-        mouse_button = pygame.mouse.get_pressed()
-
+    def update(self, states, actions, ps):
         # Get states
         states_uav, states_ugv = states['uav'], states['ugv']
         env_updated = self.benning.update_drones(self.env_image, states_uav,
@@ -154,6 +142,8 @@ class Map(pygame.sprite.Sprite):
         # Task allocation
         mouse_draw(self.mouse_0.position(), self.surface)
 
+        mouse_button = pygame.mouse.get_pressed()
+        pixel_centroids = []
         if mouse_button[0]:
             self.rect.append(mouse_draw(self.mouse_0.position(), self.surface))
         elif not mouse_button[0]:
@@ -162,8 +152,12 @@ class Map(pygame.sprite.Sprite):
                 temp = self.rect[-1]
                 temp[0] = temp[0] - map_pos[0]
                 temp[1] = temp[1] - map_pos[1]
-                self.allocate.select_platoon(states, actions, temp)
+                pixel_centroids = self.allocate.select_platoon(
+                    states, actions, temp)
                 self.rect = []
+        # # Draw a circle around them platoons
+        # for center in pixel_centroids:
+        #     pygame.draw.circle(self.surface, self.BLACK, center, 20, 5)
 
         if mouse_button[1]:
             x, y = pygame.mouse.get_pos()
@@ -173,7 +167,8 @@ class Map(pygame.sprite.Sprite):
             pygame.draw.circle(self.surface, (0, 0, 0), [x, y], 5)
 
         # Pause the game
-        if events[0]:
+        key = pygame.key.get_pressed()
+        if key[pygame.K_x]:
             actions_uav, actions_ugv = actions['uav'], actions['ugv']
             for key in actions_uav:
                 actions_uav[key]['execute'] = False
@@ -182,7 +177,8 @@ class Map(pygame.sprite.Sprite):
             ps.update_actions.remote(actions_uav, actions_ugv)
 
         # Resume the game
-        elif events[1]:
+        key = pygame.key.get_pressed()
+        if key[pygame.K_c]:
             # Get actions
             actions_uav, actions_ugv = actions['uav'], actions['ugv']
             for key in actions_uav:
@@ -193,6 +189,4 @@ class Map(pygame.sprite.Sprite):
                 actions_ugv[key]['initial_formation'] = True
             ps.update_actions.remote(actions_uav, actions_ugv)
 
-        result = self.screen.blit(self.surface, self.position)
-        # Update the surface
-        pygame.display.update(result)
+        self.screen.blit(self.surface, self.position)

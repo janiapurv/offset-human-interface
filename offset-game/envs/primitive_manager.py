@@ -1,10 +1,6 @@
 import numpy as np
 import ray
 
-# from scipy import interpolate
-
-from .extract_info import action_parameters
-
 from primitives.planning.planners import SkeletonPlanning
 from primitives.formation.control import FormationControl
 
@@ -38,6 +34,7 @@ class PrimitiveManager(object):
         """
         # Primitive parameters
         self.action = action  # make a copy and use it everywhere
+
         if self.action['vehicles_type'] == 'uav':
             self.vehicles = [
                 self.state_manager.uav[j] for j in self.action['vehicles_id']
@@ -139,8 +136,8 @@ class PrimitiveManager(object):
             # Step the simulation
             pb.stepSimulation()
             # Get the action from parameter server
-            actions = action_parameters(self.vehicles, self.action)
-            ps.set_actions.remote(actions)
+            self.action['centroid'] = self.get_centroid()
+            ps.set_actions.remote(self.action)
             ps.set_states.remote(self.state_manager.uav,
                                  self.state_manager.ugv,
                                  self.state_manager.grid_map)
@@ -153,8 +150,10 @@ class PrimitiveManager(object):
         """Performs path planning primitive
         """
         # Make vehicles non idle
-        self.make_vehicles_nonidle()
         done_rolling = False
+        self.make_vehicles_nonidle()
+
+        # Initial formation
         if self.action['initial_formation']:
             # First point of formation
             self.action['centroid_pos'] = self.get_centroid()
@@ -181,9 +180,6 @@ class PrimitiveManager(object):
 
         if done_rolling:
             self.make_vehicles_idle()
-
-        # print(self.count)
-
         return done_rolling
 
     def formation_primitive(self):
