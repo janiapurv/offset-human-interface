@@ -15,6 +15,10 @@ class ParameterServer(object):
         self.actions = collections.defaultdict(dict)
         self.states = collections.defaultdict(dict)
 
+        # Parameters for pausing and resuming the game
+        self.pause = False
+        self.resume = True
+
         # Perforn initial setup
         self._initial_setup()
         return None
@@ -37,6 +41,19 @@ class ParameterServer(object):
             key = 'ugv_p_' + str(i + 1)
             ugv_parameters['platoon_id'] = i + 1
             self.actions['ugv'][key] = ugv_parameters
+
+    def set_game_state(self, state):
+        if state == 'pause':
+            self.pause = True
+            self.resume = False
+        else:
+            self.pause = False
+            self.resume = True
+        return None
+
+    def get_game_state(self):
+        game_state = {'pause': self.pause, 'resume': self.resume}
+        return game_state
 
     def get_actions(self):
         return self.actions

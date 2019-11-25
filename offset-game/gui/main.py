@@ -12,10 +12,12 @@ import time
 
 
 @ray.remote
-class MainGUI:
+class MainGUI(pygame.sprite.Sprite):
     def __init__(self, config, screen_size, ps):
+        # Initialize pygame
         pygame.init()
-        self.screen = pygame.display.set_mode(screen_size, pygame.DOUBLEBUF)
+        super().__init__()
+        self.screen = pygame.display.set_mode(screen_size)
         self.screen.fill([255, 255, 255])
         self.map = Map(self.screen, screen_size)
         self.strategy = Strategy(self.screen, screen_size, ps)
@@ -23,29 +25,28 @@ class MainGUI:
         self.fullmap = FullMap(self.screen, screen_size)
         self.user_input = UserInput()
         self.config = config
+        self.start_time = time.time()
+        self.duration = self.config['experiment']['duration']
 
     def run(self, ps):
         clock = pygame.time.Clock()
-        start_time = time.time()
-
-        while (time.time() -
-               start_time) < self.config['experiment']['duration']:
+        while (time.time() - self.start_time) < self.duration:
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    return
-                elif event.type == pygame.KEYDOWN:
+                if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         pygame.quit()
                         return
             # Get latest states and actions
             states_id = ps.get_states.remote()
             actions_id = ps.get_actions.remote()
-            states, actions = ray.get([states_id, actions_id])
+            game_state_id = ps.get_game_state.remote()
+            states, actions, game_state = ray.get(
+                [states_id, actions_id, game_state_id])
 
             # Update all the modules
             self.user_input.update(actions, ps)  # call this more frequently
-            self.map.update(states, actions, ps)
-            self.user_input.update(actions, ps)  # call this more frequently
+            self.map.update(states, actions, game_state, ps)
+            # self.user_input.update(actions, ps)  # call this more frequently
             self.strategy.update(event)
             self.fullmap.update()
             pygame.display.flip()

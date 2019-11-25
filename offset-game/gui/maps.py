@@ -1,4 +1,5 @@
 import pygame
+import pygame.gfxdraw
 
 from .gif import GIFImage
 from .task_allocation import TaskAllocation
@@ -41,7 +42,9 @@ class Benning(pygame.sprite.Sprite):
                 int(vehicle.current_pos[1] / .2 + 420),
                 int(vehicle.current_pos[0] / .2 + 340)
             ]
-            pygame.draw.circle(temp, color, pos, 3)
+            # pygame.draw.circle(temp, color, pos, 3)
+            pygame.gfxdraw.filled_circle(temp, pos[0], pos[1], 3, color)
+            pygame.gfxdraw.aacircle(temp, pos[0], pos[1], 3, color)
         for vehicle in ugv:
             pos = [(vehicle.current_pos[1] / .2 + 420),
                    vehicle.current_pos[0] / .2 + 340]
@@ -58,6 +61,7 @@ class PanZoom(pygame.sprite.Sprite):
 
         self.screen_width = screen_size[0]
         self.screen_height = screen_size[1]
+        return None
 
     def check_map_pos(self, width, height):
         if self.map_pos[0] > 0:
@@ -68,6 +72,7 @@ class PanZoom(pygame.sprite.Sprite):
             self.map_pos[0] = -width + self.screen_width - 600
         if abs(self.map_pos[1]) > height - self.screen_height + 170:
             self.map_pos[1] = -height + self.screen_height - 170
+        return None
 
     def get_current_map_pos(self):
         return [self.map_pos[0], self.map_pos[1]]
@@ -123,20 +128,14 @@ class Map(pygame.sprite.Sprite):
         self.allocate = TaskAllocation()
         self.pan_zoom = PanZoom(self.surface, self.screen_size, self.env_image)
 
-        # Some color
-        self.BLACK = (0, 0, 0)
+        return None
 
     def get_env_image(self):
         image_path = 'offset-game/gui/images/Benning.png'
-        # arr = imread(image_path)
-        # array = ((arr - arr.min()) *
-        #          (1 / (arr.max() - arr.min()) * 255)).astype('uint8')
-        # array = np.swapaxes(array, 0, 1)
-        # image = pygame.surfarray.make_surface(array[:, :, 0:3])
         image = pygame.image.load(image_path).convert()
         return image
 
-    def update(self, states, actions, ps):
+    def update(self, states, actions, game_state, ps):
         # Get states
         states_uav, states_ugv = states['uav'], states['ugv']
         env_updated = self.benning.update_drones(self.env_image, states_uav,
@@ -145,12 +144,12 @@ class Map(pygame.sprite.Sprite):
 
         # Task allocation
         mouse_draw(self.mouse_0.position(), self.surface)
-        mouse_button = pygame.mouse.get_pressed()
 
         # Current map poisition
         map_pos = self.pan_zoom.get_current_map_pos()
 
         # Selection of platoons
+        mouse_button = pygame.mouse.get_pressed()
         if mouse_button[0]:
             self.rect.append(mouse_draw(self.mouse_0.position(), self.surface))
         elif not mouse_button[0]:
@@ -170,4 +169,12 @@ class Map(pygame.sprite.Sprite):
 
         # Draw smoke
         self.smoke.render(self.surface, [400 + map_pos[0], 100 + map_pos[1]])
+
+        # Pause and resume game
+        if game_state['pause']:
+            pygame.gfxdraw.filled_circle(self.surface, 25, 25, 15,
+                                         (255, 255, 255))
+            pygame.gfxdraw.aacircle(self.surface, 25, 25, 15, (255, 255, 255))
+
+        # Blit the final surface to screen
         self.screen.blit(self.surface, self.position)

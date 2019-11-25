@@ -6,6 +6,7 @@ uav:
   target_pos: [20, 50]
   vehicles_id: []
   vehicles_type: 'uav'
+  vehicles: []
   centroid_pos: [0, 0]
   platoon_id: 0
   initial_formation: True
@@ -17,6 +18,7 @@ ugv:
   target_pos: [20, 50]
   vehicles_id: []
   vehicles_type: 'ugv'
+  vehicles: []
   centroid_pos: [0, 0]
   platoon_id: 0
   initial_formation: True

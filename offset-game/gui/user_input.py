@@ -1,6 +1,16 @@
 import pygame
 
 
+def get_window_size(screen_size):
+    size = (int(0.6 * screen_size[0]), int(0.75 * screen_size[1]))
+    return size
+
+
+def get_position(screen_size):
+    position = (5 + 0 * screen_size[0], 10 + 0.75 * screen_size[1])
+    return position
+
+
 class UserInput():
     def __init__(self):
         return None
@@ -15,6 +25,7 @@ class UserInput():
             for key in actions_ugv:
                 actions_ugv[key]['execute'] = False
             ps.update_actions.remote(actions_uav, actions_ugv)
+            ps.set_game_state.remote('pause')
 
         # Resume the game
         key = pygame.key.get_pressed()
@@ -28,3 +39,4 @@ class UserInput():
                 actions_ugv[key]['execute'] = True
                 actions_ugv[key]['initial_formation'] = True
             ps.update_actions.remote(actions_uav, actions_ugv)
+            ps.set_game_state.remote('resume')
