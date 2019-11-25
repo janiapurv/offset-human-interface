@@ -1,10 +1,6 @@
 import numpy as np
 import ray
 
-from scipy import interpolate
-
-from .extract_info import action_parameters
-
 from primitives.planning.planners import SkeletonPlanning
 from primitives.formation.control import FormationControl
 
@@ -27,7 +23,7 @@ class PrimitiveManager(object):
         self.formation = FormationControl()
         return None
 
-    def set_parameters(self, primitive_parameters):
+    def set_action(self, action):
         """Set up the parameters of the premitive execution
 
         Parameters
@@ -37,21 +33,15 @@ class PrimitiveManager(object):
             and primitive realted parameters.
         """
         # Primitive parameters
-        self.parameters = primitive_parameters
-        self.execute = primitive_parameters['execute']
-        self.platoon_id = self.parameters['platoon_id']
-        self.vehicles_type = self.parameters['vehicles_type']
-        self.count = 0
+        self.action = action  # make a copy and use it everywhere
 
-        if self.parameters['vehicles_type'] == 'uav':
+        if self.action['vehicles_type'] == 'uav':
             self.vehicles = [
-                self.state_manager.uav[j]
-                for j in self.parameters['vehicles_id']
+                self.state_manager.uav[j] for j in self.action['vehicles_id']
             ]
         else:
             self.vehicles = [
-                self.state_manager.ugv[j]
-                for j in self.parameters['vehicles_id']
+                self.state_manager.ugv[j] for j in self.action['vehicles_id']
             ]
         return None
 
@@ -110,10 +100,10 @@ class PrimitiveManager(object):
             A list of points which are the fitted spline.
         """
         # Perform planning and fit a spline
-        self.parameters['start_pos'] = self.parameters['centroid_pos']
-        pixel_start = self.convert_pixel_ordinate(self.parameters['start_pos'],
+        self.action['start_pos'] = self.action['centroid_pos']
+        pixel_start = self.convert_pixel_ordinate(self.action['start_pos'],
                                                   ispixel=False)
-        pixel_end = self.convert_pixel_ordinate(self.parameters['target_pos'],
+        pixel_end = self.convert_pixel_ordinate(self.action['target_pos'],
                                                 ispixel=False)
         path = self.planning.find_path(pixel_start, pixel_end, spline=False)
 
@@ -122,6 +112,7 @@ class PrimitiveManager(object):
         for i, point in enumerate(path):
             points[i, :] = self.convert_pixel_ordinate(point, ispixel=True)
 
+        # As of now don't split any splines
         x_new, y_new = points[:, 0], points[:, 1]
         new_points = np.array([x_new, y_new]).T
         return new_points, points
@@ -134,17 +125,19 @@ class PrimitiveManager(object):
             'formation': self.formation_primitive
         }
 
+        # Get the latest actions
         actions = ray.get(ps.get_actions.remote())
-        key = self.vehicles_type + '_p_' + str(self.parameters['platoon_id'])
-        self.parameters = actions[self.vehicles_type][key]
+        key = self.action['vehicles_type'] + '_p_' + str(
+            self.action['platoon_id'])
+        self.action = actions[self.action['vehicles_type']][key]
 
-        if self.parameters['execute'] and self.parameters['n_vehicles'] > 0:
-            done = primitives[self.parameters['primitive']](ps)
+        if self.action['execute'] and self.action['n_vehicles'] > 0:
+            done = primitives[self.action['primitive']](ps)
             # Step the simulation
             pb.stepSimulation()
             # Get the action from parameter server
-            actions = action_parameters(self.vehicles, self.parameters)
-            ps.set_actions.remote(actions)
+            self.action['centroid'] = self.get_centroid()
+            ps.set_actions.remote(self.action)
             ps.set_states.remote(self.state_manager.uav,
                                  self.state_manager.ugv,
                                  self.state_manager.grid_map)
@@ -157,38 +150,36 @@ class PrimitiveManager(object):
         """Performs path planning primitive
         """
         # Make vehicles non idle
-        self.make_vehicles_nonidle()
         done_rolling = False
+        self.make_vehicles_nonidle()
 
-        if self.count == 0:
+        # Initial formation
+        if self.action['initial_formation']:
             # First point of formation
-            self.parameters['centroid_pos'] = self.get_centroid()
-            self.parameters['next_pos'] = self.parameters['centroid_pos']
+            self.action['centroid_pos'] = self.get_centroid()
+            self.action['next_pos'] = self.action['centroid_pos']
             done = self.formation_primitive()
             if done:
-                self.count = 1
+                self.action['initial_formation'] = False
                 self.new_points, points = self.get_spline_points()
-
+                # Update parameter server
+                ps.set_actions.remote(self.action)
         else:
-            self.parameters['centroid_pos'] = self.get_centroid()
-            distance = np.linalg.norm(self.parameters['centroid_pos'] -
-                                      self.parameters['target_pos'])
-            if len(self.new_points) > 2 and distance > 5:
-                self.parameters['next_pos'] = self.new_points[0]
+            self.action['centroid_pos'] = self.get_centroid()
+            distance = np.linalg.norm(self.action['centroid_pos'] -
+                                      self.action['target_pos'])
+            if len(self.new_points) > 2 and distance > 2:
+                self.action['next_pos'] = self.new_points[0]
                 self.new_points = np.delete(self.new_points, 0, 0)
             else:
-                self.parameters['next_pos'] = self.parameters['target_pos']
+                self.action['next_pos'] = self.action['target_pos']
             self.formation_primitive()
 
             if distance < 1:
                 done_rolling = True
-                self.count = 0
 
         if done_rolling:
             self.make_vehicles_idle()
-
-        # print(self.count)
-
         return done_rolling
 
     def formation_primitive(self):
@@ -199,8 +190,8 @@ class PrimitiveManager(object):
 
         dt = self.config['simulation']['time_step']
         self.vehicles, done = self.formation.execute(
-            self.vehicles, self.parameters['next_pos'],
-            self.parameters['centroid_pos'], dt, self.formation_type)
+            self.vehicles, self.action['next_pos'],
+            self.action['centroid_pos'], dt, self.formation_type)
         for vehicle in self.vehicles:
             vehicle.set_position(vehicle.updated_pos)
         return done

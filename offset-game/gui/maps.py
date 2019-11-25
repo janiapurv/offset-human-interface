@@ -1,11 +1,8 @@
 import pygame
 
-import numpy as np
-from matplotlib.image import imread
-
+from .gif import GIFImage
 from .task_allocation import TaskAllocation
 from .utils import (get_rectangle_param, MousePosition)
-from .ExtractionLayer import Extraction
 
 
 def mouse_draw(mouse_pos, surface):
@@ -38,11 +35,13 @@ class Benning(pygame.sprite.Sprite):
 
     def update_drones(self, surface, uav, ugv):
         temp = surface.copy()
-        color, color2 = (0, 255, 0), (0, 0, 255)
+        color, color2 = (0, 153, 76), (0, 0, 255)
         for vehicle in uav:
-            pos = [(vehicle.current_pos[1] / .2 + 420),
-                   vehicle.current_pos[0] / .2 + 340]
-            pygame.draw.rect(temp, color, pygame.Rect(pos, [5, 5]))
+            pos = [
+                int(vehicle.current_pos[1] / .2 + 420),
+                int(vehicle.current_pos[0] / .2 + 340)
+            ]
+            pygame.draw.circle(temp, color, pos, 3)
         for vehicle in ugv:
             pos = [(vehicle.current_pos[1] / .2 + 420),
                    vehicle.current_pos[0] / .2 + 340]
@@ -78,18 +77,21 @@ class PanZoom(pygame.sprite.Sprite):
         width = env_surface.get_rect().width
         height = env_surface.get_rect().height
 
-        if len(mouse_pos) > 0:
-            intial_mouse = mouse_pos[0]
+        if len(mouse_pos) > 1:
+            intial_mouse = mouse_pos[-2]
             final_mouse = mouse_pos[-1]
             dx_mouse = final_mouse[0] - intial_mouse[0]
             dy_mouse = final_mouse[1] - intial_mouse[1]
+        else:
+            dx_mouse = 0
+            dy_mouse = 0
 
-            # Update the map pose
-            self.map_pos[0] = dx_mouse / 3 + self.map_pos[0]
-            self.map_pos[1] = dy_mouse / 3 + self.map_pos[1]
+        # Update the map pose
+        self.map_pos[0] = dx_mouse + self.map_pos[0]
+        self.map_pos[1] = dy_mouse + self.map_pos[1]
 
-            # Check is the map of out of boundary
-            self.check_map_pos(width, height)
+        # Check is the map of out of boundary
+        self.check_map_pos(width, height)
 
         self.surface.blit(env_surface, self.map_pos)
         return None
@@ -102,7 +104,7 @@ class Map(pygame.sprite.Sprite):
         self.size = get_window_size(screen_size)
 
         self.surface = pygame.Surface(self.size)
-        self.screen = screen
+        self.screen = screen  # overall screen
         self.screen.blit(self.surface, self.position)
 
         self.mouse_0 = MousePosition(0)
@@ -114,80 +116,58 @@ class Map(pygame.sprite.Sprite):
             self.env_image, (screen_size[0], screen_size[1]))
         self.surface.blit(self.env_image, (0, 0))
 
+        # Components of map
         self.benning = Benning()
+        self.smoke = GIFImage('offset-game/gui/images/smoke.gif',
+                              transparency=True)
         self.allocate = TaskAllocation()
         self.pan_zoom = PanZoom(self.surface, self.screen_size, self.env_image)
-        self.ex = Extraction
+
+        # Some color
+        self.BLACK = (0, 0, 0)
 
     def get_env_image(self):
-        arr = imread('offset-game/gui/Map/Benning.png')
-        array = ((arr - arr.min()) *
-                 (1 / (arr.max() - arr.min()) * 255)).astype('uint8')
-        array = np.swapaxes(array, 0, 1)
-        image = pygame.surfarray.make_surface(array[:, :, 0:3])
-        # image = pygame.image.load('offset-game/gui/Map/Benning.png')
+        image_path = 'offset-game/gui/images/Benning.png'
+        # arr = imread(image_path)
+        # array = ((arr - arr.min()) *
+        #          (1 / (arr.max() - arr.min()) * 255)).astype('uint8')
+        # array = np.swapaxes(array, 0, 1)
+        # image = pygame.surfarray.make_surface(array[:, :, 0:3])
+        image = pygame.image.load(image_path).convert()
         return image
 
-    def set_actions_execute(actions_uav, actions_ugv, ps, execute_action):
-        for key in actions_uav:
-            actions_uav[key]['execute'] = execute_action
-            ps.set_actions.remote(actions_uav[key])
-        for key in actions_ugv:
-            actions_ugv[key]['execute'] = execute_action
-            ps.set_actions.remote(actions_ugv[key])
-        return None
-
     def update(self, states, actions, ps):
-        x, y = pygame.mouse.get_pos()
-        keys = pygame.key.get_pressed()
-        mouse_button = pygame.mouse.get_pressed()
-
         # Get states
-        states_uav = states['uav']
-        states_ugv = states['ugv']
+        states_uav, states_ugv = states['uav'], states['ugv']
         env_updated = self.benning.update_drones(self.env_image, states_uav,
                                                  states_ugv)
-        self.pan_zoom.pan(self.mouse_0.position(), env_updated)
-
-        # Get states
-        actions_uav = actions['uav']
-        actions_ugv = actions['ugv']
-
-        # Pause the game
-        if keys[pygame.K_x]:
-            for key in actions_uav:
-                actions_uav[key]['execute'] = False
-                ps.set_actions.remote(actions_uav[key])
-            for key in actions_ugv:
-                actions_ugv[key]['execute'] = False
-                ps.set_actions.remote(actions_ugv[key])
+        self.pan_zoom.pan(self.mouse_2.position(), env_updated)
 
         # Task allocation
-        mouse_draw(self.mouse_2.position(), self.surface)
+        mouse_draw(self.mouse_0.position(), self.surface)
+        mouse_button = pygame.mouse.get_pressed()
 
-        if mouse_button[2]:
-            self.rect.append(mouse_draw(self.mouse_2.position(), self.surface))
-        elif not mouse_button[2]:
+        # Current map poisition
+        map_pos = self.pan_zoom.get_current_map_pos()
+
+        # Selection of platoons
+        if mouse_button[0]:
+            self.rect.append(mouse_draw(self.mouse_0.position(), self.surface))
+        elif not mouse_button[0]:
             if self.rect:
-                map_pos = self.pan_zoom.get_current_map_pos()
                 temp = self.rect[-1]
                 temp[0] = temp[0] - map_pos[0]
                 temp[1] = temp[1] - map_pos[1]
                 self.allocate.select_platoon(states, actions, temp)
                 self.rect = []
 
+        # Providing the target position
         if mouse_button[1]:
             x, y = pygame.mouse.get_pos()
-            map_pos = self.pan_zoom.get_current_map_pos()
             target_pos = [x - map_pos[0], y - map_pos[1]]
             self.allocate.assign_target(actions, target_pos, ps)
-        # Resume the game
-        if keys[pygame.K_c]:
-            for key in actions_uav:
-                actions_uav[key]['execute'] = True
-                ps.set_actions.remote(actions_uav[key])
-            for key in actions_ugv:
-                actions_ugv[key]['execute'] = True
-                ps.set_actions.remote(actions_ugv[key])
+            pygame.draw.circle(self.surface, (0, 0, 0), [x, y], 5)
 
+        # Draw smoke
+        self.smoke.render(self.surface, [400 + map_pos[0], 100 + map_pos[1]])
         self.screen.blit(self.surface, self.position)

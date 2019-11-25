@@ -1,7 +1,9 @@
 import pygame
+
 import ray
+
+from .user_input import UserInput
 from .maps import Map
-from .task_allocation import TaskAllocation
 from .strategy import Strategy
 from .information import Information
 from .fullmap import FullMap
@@ -11,19 +13,23 @@ import time
 
 @ray.remote
 class MainGUI:
-    def __init__(self, screen_size, ps):
+    def __init__(self, config, screen_size, ps):
         pygame.init()
-        self.screen = pygame.display.set_mode(screen_size)
+        self.screen = pygame.display.set_mode(screen_size, pygame.DOUBLEBUF)
         self.screen.fill([255, 255, 255])
         self.map = Map(self.screen, screen_size)
         self.strategy = Strategy(self.screen, screen_size, ps)
         self.information = Information(self.screen, screen_size)
         self.fullmap = FullMap(self.screen, screen_size)
+        self.user_input = UserInput()
+        self.config = config
 
     def run(self, ps):
         clock = pygame.time.Clock()
         start_time = time.time()
-        while (time.time() - start_time) < 100:
+
+        while (time.time() -
+               start_time) < self.config['experiment']['duration']:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     return
@@ -31,14 +37,16 @@ class MainGUI:
                     if event.key == pygame.K_ESCAPE:
                         pygame.quit()
                         return
-
             # Get latest states and actions
-            states = ray.get(ps.get_states.remote())
-            actions = ray.get(ps.get_actions.remote())
+            states_id = ps.get_states.remote()
+            actions_id = ps.get_actions.remote()
+            states, actions = ray.get([states_id, actions_id])
 
             # Update all the modules
+            self.user_input.update(actions, ps)  # call this more frequently
             self.map.update(states, actions, ps)
+            self.user_input.update(actions, ps)  # call this more frequently
             self.strategy.update(event)
             self.fullmap.update()
-            pygame.display.update()
+            pygame.display.flip()
             clock.tick(60)
