@@ -2,6 +2,7 @@ import pygame
 
 import ray
 
+from .user_input import UserInput
 from .maps import Map
 from .strategy import Strategy
 from .information import Information
@@ -20,6 +21,7 @@ class MainGUI:
         self.strategy = Strategy(self.screen, screen_size, ps)
         self.information = Information(self.screen, screen_size)
         self.fullmap = FullMap(self.screen, screen_size)
+        self.user_input = UserInput()
         self.config = config
 
     def run(self, ps):
@@ -41,7 +43,9 @@ class MainGUI:
             states, actions = ray.get([states_id, actions_id])
 
             # Update all the modules
+            self.user_input.update(actions, ps)  # call this more frequently
             self.map.update(states, actions, ps)
+            self.user_input.update(actions, ps)  # call this more frequently
             self.strategy.update(event)
             self.fullmap.update()
             pygame.display.flip()
