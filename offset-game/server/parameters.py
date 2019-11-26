@@ -15,6 +15,10 @@ class ParameterServer(object):
         self.actions = collections.defaultdict(dict)
         self.states = collections.defaultdict(dict)
 
+        # Parameters for pausing and resuming the game
+        self.pause = False
+        self.resume = True
+
         # Perforn initial setup
         self._initial_setup()
         return None
@@ -30,6 +34,7 @@ class ParameterServer(object):
             key = 'uav_p_' + str(i + 1)
             uav_parameters['platoon_id'] = i + 1
             self.actions['uav'][key] = uav_parameters
+            self.states['uav'][key] = uav_parameters
 
         # Setup the uav platoons
         for i in range(self.config['simulation']['n_ugv_platoons']):
@@ -37,6 +42,20 @@ class ParameterServer(object):
             key = 'ugv_p_' + str(i + 1)
             ugv_parameters['platoon_id'] = i + 1
             self.actions['ugv'][key] = ugv_parameters
+            self.states['ugv'][key] = ugv_parameters
+
+    def set_game_state(self, state):
+        if state == 'pause':
+            self.pause = True
+            self.resume = False
+        else:
+            self.pause = False
+            self.resume = True
+        return None
+
+    def get_game_state(self):
+        game_state = {'pause': self.pause, 'resume': self.resume}
+        return game_state
 
     def get_actions(self):
         return self.actions
@@ -52,13 +71,11 @@ class ParameterServer(object):
         self.actions['ugv'] = actions_ugv
         return None
 
-    def set_states(self, uav, ugv, grid_map):
-        self.uav = uav
-        self.ugv = ugv
-        self.map = grid_map
-        self.states = {'uav': self.uav, 'ugv': self.ugv, 'map': self.grid_map}
+    def set_states(self, states):
+        vehicle_type = states['vehicles_type']
+        key = vehicle_type + '_p_' + str(states['platoon_id'])
+        self.states[vehicle_type][key] = states
         return None
 
     def get_states(self):
-        self.states = {'uav': self.uav, 'ugv': self.ugv, 'map': self.grid_map}
         return self.states
