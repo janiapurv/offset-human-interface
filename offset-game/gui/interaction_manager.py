@@ -115,9 +115,8 @@ class InteractionManager(pygame.sprite.Sprite):
         # Pause and resume game
         if game_state['pause']:
             pygame.gfxdraw.filled_circle(self.map.surface, 25, 25, 15,
-                                         (255, 255, 255))
-            pygame.gfxdraw.aacircle(self.map.surface, 25, 25, 15,
-                                    (255, 255, 255))
+                                         (255, 0, 0))
+            pygame.draw.circle(self.map.surface, (0, 0, 0), [25, 25], 16, 3)
 
         # Blit the final surface to screen
         self.map.screen.blit(self.map.surface, self.map.position)

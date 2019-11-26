@@ -30,7 +30,7 @@ with skip_run('run', 'Game Test') as check, check():
 
     gui_run_id = gui.run.remote(ps)
     env_run_id = env.step.remote(ps)
-    ray.wait([env_run_id])
+    ray.wait([env_run_id, gui_run_id])
     print(time.time() - ray.get(gui.get_start_time.remote()))
 
     # Shutdown ray

@@ -58,7 +58,6 @@ class MainGUI(pygame.sprite.Sprite):
             self.user_input.update(actions, ps)
             self.action_manager.update(states)
             self.interaction_manager.update(states, actions, game_state, ps)
-            self.user_input.update(actions, ps)
 
             # Update the strategy and full map
             self.strategy.update(event)
