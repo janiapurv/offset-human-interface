@@ -28,11 +28,10 @@ with skip_run('run', 'Game Test') as check, check():
     # Instantiate GUI
     gui = MainGUI.remote(config, (1500, 750), ps)
 
-    start_time = time.time()
     gui_run_id = gui.run.remote(ps)
     env_run_id = env.step.remote(ps)
-    ray.wait([env_run_id, gui_run_id])
-    print(time.time() - start_time)
+    ray.wait([env_run_id])
+    print(time.time() - ray.get(gui.get_start_time.remote()))
 
     # Shutdown ray
     ray.shutdown()

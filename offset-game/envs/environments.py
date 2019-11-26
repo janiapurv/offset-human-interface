@@ -89,8 +89,8 @@ class Benning(BaseEnv):
             self.p.stepSimulation()
 
         # Update parameter server
-        ps.set_states.remote(self.state_manager.uav, self.state_manager.ugv,
-                             self.state_manager.grid_map)
+        ps.update_states.remote(self.state_manager.uav, self.state_manager.ugv,
+                                self.state_manager.grid_map)
 
         # call the state manager
         state = 0  # self.state.get_state()

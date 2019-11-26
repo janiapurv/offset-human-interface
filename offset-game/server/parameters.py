@@ -34,6 +34,7 @@ class ParameterServer(object):
             key = 'uav_p_' + str(i + 1)
             uav_parameters['platoon_id'] = i + 1
             self.actions['uav'][key] = uav_parameters
+            self.states['uav'][key] = uav_parameters
 
         # Setup the uav platoons
         for i in range(self.config['simulation']['n_ugv_platoons']):
@@ -41,6 +42,7 @@ class ParameterServer(object):
             key = 'ugv_p_' + str(i + 1)
             ugv_parameters['platoon_id'] = i + 1
             self.actions['ugv'][key] = ugv_parameters
+            self.states['ugv'][key] = ugv_parameters
 
     def set_game_state(self, state):
         if state == 'pause':
@@ -69,13 +71,11 @@ class ParameterServer(object):
         self.actions['ugv'] = actions_ugv
         return None
 
-    def set_states(self, uav, ugv, grid_map):
-        self.uav = uav
-        self.ugv = ugv
-        self.map = grid_map
-        self.states = {'uav': self.uav, 'ugv': self.ugv, 'map': self.grid_map}
+    def set_states(self, states):
+        vehicle_type = states['vehicles_type']
+        key = vehicle_type + '_p_' + str(states['platoon_id'])
+        self.states[vehicle_type][key] = states
         return None
 
     def get_states(self):
-        self.states = {'uav': self.uav, 'ugv': self.ugv, 'map': self.grid_map}
         return self.states

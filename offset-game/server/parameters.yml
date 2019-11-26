@@ -9,7 +9,8 @@ uav:
   vehicles: []
   centroid_pos: [0, 0]
   platoon_id: 0
-  initial_formation: True
+  initial_formation: True,
+  selected: False
   execute: True
 ##---------------------------------------------------------------------##
 ugv:
@@ -22,4 +23,5 @@ ugv:
   centroid_pos: [0, 0]
   platoon_id: 0
   initial_formation: True
+  selected: False
   execute: True

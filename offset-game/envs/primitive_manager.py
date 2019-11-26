@@ -34,6 +34,7 @@ class PrimitiveManager(object):
         """
         # Primitive parameters
         self.action = action  # make a copy and use it everywhere
+        self.state = action  # we have the same template for states also
 
         if self.action['vehicles_type'] == 'uav':
             self.vehicles = [
@@ -132,15 +133,20 @@ class PrimitiveManager(object):
         self.action = actions[self.action['vehicles_type']][key]
 
         if self.action['execute'] and self.action['n_vehicles'] > 0:
+            # Start executing the primitive
             done = primitives[self.action['primitive']](ps)
+
             # Step the simulation
             pb.stepSimulation()
-            # Get the action from parameter server
-            self.action['centroid'] = self.get_centroid()
+
+            # Set the actions and states
+            self.action['centroid_pos'] = self.get_centroid()
             ps.set_actions.remote(self.action)
-            ps.set_states.remote(self.state_manager.uav,
-                                 self.state_manager.ugv,
-                                 self.state_manager.grid_map)
+
+            # Since we are using same template for states and actions
+            self.state['vehicles'] = self.vehicles
+            self.state['centroid_pos'] = self.action['centroid_pos']
+            ps.set_states.remote(self.state)
         else:
             done = False
 

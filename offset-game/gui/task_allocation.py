@@ -43,14 +43,7 @@ class TaskAllocation(pygame.sprite.Sprite):
                     selected_platoon['uav'].append(keys)
                 else:
                     selected_platoon['ugv'].append(keys)
-
-        if mask.any():
-            # Swap the x and y co-ordinates
-            pixel_centroid = centroid_values_pixel[mask].astype(int)
-        else:
-            pixel_centroid = []
-
-        return selected_platoon, pixel_centroid
+        return selected_platoon
 
     def convert_points_path(self, points):
         x, y = points[1], points[0]
@@ -59,21 +52,30 @@ class TaskAllocation(pygame.sprite.Sprite):
         rectangle = Path(vertices)  # make a polygon
         return rectangle
 
-    def select_platoon(self, states, actions, rectangle):
+    def select_platoon(self, states, actions, rectangle, ps):
         rectangle_pixel = self.convert_points_path(rectangle)
-        self.selected_platoon, pixel_centroid = self.get_enclosed_centorid(
+        self.selected_platoon = self.get_enclosed_centorid(
             rectangle_pixel, actions)
-        return pixel_centroid
+        for platoon_type in self.selected_platoon:
+            if self.selected_platoon[platoon_type]:
+                platoons = self.selected_platoon[platoon_type]
+                for platoon in platoons:
+                    # Convert to catesian form
+                    states[platoon_type][platoon]['selected'] = True
+                    ps.set_states.remote(states[platoon_type][platoon])
+        return None
 
-    def assign_target(self, actions, target_pos, ps):
-        for key in self.selected_platoon:
-            if self.selected_platoon[key]:
-                values = self.selected_platoon[key]
-                for value in values:
+    def assign_target(self, actions, states, target_pos, ps):
+        for platoon_type in self.selected_platoon:
+            if self.selected_platoon[platoon_type]:
+                platoons = self.selected_platoon[platoon_type]
+                for platoon in platoons:
                     # Convert to catesian form
                     target_pos = [(target_pos[1] - 340) * 0.2,
                                   (target_pos[0] - 420) * 0.2]
-                    actions[key][value]['target_pos'] = target_pos
-
-                    ps.set_actions.remote(actions[key][value])
+                    actions[platoon_type][platoon]['target_pos'] = target_pos
+                    ps.set_actions.remote(actions[platoon_type][platoon])
+                    # Set the selection to False
+                    states[platoon_type][platoon]['selected'] = False
+                    ps.set_states.remote(states[platoon_type][platoon])
         return None
