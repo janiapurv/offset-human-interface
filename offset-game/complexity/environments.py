@@ -2,21 +2,16 @@ import time
 import math
 from pathlib import Path
 
-import numpy as np
-
 import ray
 
 from .base_env import BaseEnv
 from .agents import UAV, UGV
 from .state_manager import StateManager
-from .states import State
-from .actions import Action
 from .action_manager import ActionManager
-from .rewards import BenningReward
 
 
 @ray.remote
-class Benning(BaseEnv):
+class ComplexBenning(BaseEnv):
     def __init__(self, config):
         # Inherit base env
         super().__init__(config)
@@ -37,40 +32,12 @@ class Benning(BaseEnv):
                         useFixedBase=True)
 
         # Setup the uav and ugv
-        uav, ugv = self._initial_setup(UGV, UAV)
+        uav, ugv = super()._initial_setup(UGV, UAV)
 
         # Initialize the state and action components
         self.state_manager = StateManager(uav, ugv, self.current_time,
                                           self.config)
-        self.state = State(self.state_manager)
-        self.reward = BenningReward(self.state_manager)
-        self.action = Action(self.state_manager)
         self.action_manager = ActionManager(self.state_manager)
-
-    def get_initial_position(self, agent, n_agents):
-        grid = np.arange(n_agents).reshape(n_agents // 5, 5)
-        pos_xy = np.where(grid == agent)
-        return [pos_xy[0][0] * 20 + 10, pos_xy[1][0] * 20]
-
-    def _initial_setup(self, UGV, UAV):
-        # Number of UGV and UAV
-        self.n_ugv = self.config['simulation']['n_ugv']
-        self.n_uav = self.config['simulation']['n_uav']
-
-        ugv, uav = [], []
-
-        # Initialise the UGV and UAV
-        init_orientation = self.p.getQuaternionFromEuler([math.pi / 2, 0, 0])
-        for i, item in enumerate(range(self.n_ugv)):
-            position = self.get_initial_position(item, self.n_ugv)
-            init_pos = [position[0] * 0.25 + 2.5, position[1] * 0.25, 5]
-            ugv.append(UGV(self.p, init_pos, init_orientation, i, self.config))
-
-        for i, item in enumerate(range(self.n_uav)):
-            position = self.get_initial_position(item, self.n_uav)
-            init_pos = [position[0] * 0.25 + 2.5, position[1] * 0.25 - 1.5, 5]
-            uav.append(UAV(self.p, init_pos, init_orientation, i, self.config))
-        return uav, ugv
 
     def get_camera_image(self):
         """Get the camera image of the scene
@@ -128,7 +95,7 @@ class Benning(BaseEnv):
         """Take a step in the environement
         """
         # Get the action from parameter server
-        actions = ray.get(parameter_server.get_actions.remote())
+        actions = ray.get(parameter_server.get_complexity_actions.remote())
         actions_uav, actions_ugv = actions['uav'], actions['ugv']
 
         # Execute the actions

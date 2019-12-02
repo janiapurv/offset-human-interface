@@ -113,11 +113,8 @@ class PrimitiveManager(object):
         for i, point in enumerate(path):
             points[i, :] = self.convert_pixel_ordinate(point, ispixel=True)
 
-        if self.action['vehicles_type'] == 'uav':
-            # As of now don't split any splines
-            x_new, y_new = points[-1, 0], points[-1, 1]
-        else:
-            x_new, y_new = points[:, 0], points[:, 1]
+        # As of now don't split any splines
+        x_new, y_new = points[:, 0], points[:, 1]
         new_points = np.array([x_new, y_new]).T
         return new_points, points
 
@@ -130,7 +127,7 @@ class PrimitiveManager(object):
         }
 
         # Get the latest actions
-        actions = ray.get(ps.get_actions.remote())
+        actions = ray.get(ps.get_complexity_actions.remote())
         key = self.action['vehicles_type'] + '_p_' + str(
             self.action['platoon_id'])
         self.action = actions[self.action['vehicles_type']][key]
@@ -144,12 +141,12 @@ class PrimitiveManager(object):
 
             # Set the actions and states
             self.action['centroid_pos'] = self.get_centroid()
-            ps.set_actions.remote(self.action)
+            ps.set_complexity_actions.remote(self.action)
 
             # Since we are using same template for states and actions
             self.state['vehicles'] = self.vehicles
             self.state['centroid_pos'] = self.action['centroid_pos']
-            ps.set_states.remote(self.state)
+            ps.set_complexity_states.remote(self.state)
         else:
             done = False
 
@@ -167,12 +164,12 @@ class PrimitiveManager(object):
             # First point of formation
             self.action['centroid_pos'] = self.get_centroid()
             self.action['next_pos'] = self.action['centroid_pos']
-            done = self.formation_primitive()
+            done = self.formation_primitive(ps)
             if done:
                 self.action['initial_formation'] = False
                 self.new_points, points = self.get_spline_points()
                 # Update parameter server
-                ps.set_actions.remote(self.action)
+                ps.set_complexity_actions.remote(self.action)
         else:
             self.action['centroid_pos'] = self.get_centroid()
             distance = np.linalg.norm(self.action['centroid_pos'] -
@@ -182,7 +179,7 @@ class PrimitiveManager(object):
                 self.new_points = np.delete(self.new_points, 0, 0)
             else:
                 self.action['next_pos'] = self.action['target_pos']
-            self.formation_primitive()
+            self.formation_primitive(ps)
 
             if distance < 1:
                 done_rolling = True
@@ -191,12 +188,14 @@ class PrimitiveManager(object):
             self.make_vehicles_idle()
         return done_rolling
 
-    def formation_primitive(self):
+    def formation_primitive(self, ps):
         """Performs formation primitive
         """
+        if self.action['primitive'] == 'formation':
+            self.action['centroid_pos'] = self.get_centroid()
+            self.action['next_pos'] = self.action['target_pos']
 
         self.formation_type = 'solid'  # a place holder
-
         dt = self.config['simulation']['time_step']
         self.vehicles, done = self.formation.execute(
             self.vehicles, self.action['next_pos'],
