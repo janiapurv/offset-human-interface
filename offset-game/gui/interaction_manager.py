@@ -106,7 +106,7 @@ class InteractionManager(pygame.sprite.Sprite):
             x, y = pygame.mouse.get_pos()
             target_pos = [x - map_pos[0], y - map_pos[1]]
             self.allocate.assign_target(actions, states, target_pos, ps)
-            pygame.draw.circle(self.map.surface, (0, 0, 0), [x, y], 10)
+            pygame.draw.circle(self.map.surface, (0, 0, 0), [x - 6, y - 6], 10)
 
         # Draw smoke
         self.smoke.render(self.map.surface,

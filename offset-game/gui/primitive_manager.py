@@ -34,10 +34,11 @@ class PrimitiveManager(pygame.sprite.Sprite):
             for vehicle in self.vehicles:
                 pos = self.convert_to_pixel(vehicle.current_pos)
                 # Draw a circle
-                pygame.gfxdraw.filled_circle(self.map.env_surface, pos[0],
-                                             pos[1], 3, color)
-                pygame.gfxdraw.aacircle(self.map.env_surface, pos[0], pos[1],
-                                        3, color)
+                pygame.draw.circle(self.map.env_surface, color, pos, 3)
+                # pygame.gfxdraw.filled_circle(self.map.env_surface, pos[0],
+                #                              pos[1], 3, color)
+                # pygame.gfxdraw.aacircle(self.map.env_surface, pos[0], pos[1],
+                #                         3, color)
         else:
             color = (0, 0, 255)
             for vehicle in self.vehicles:
@@ -50,9 +51,9 @@ class PrimitiveManager(pygame.sprite.Sprite):
         if self.state['selected']:
             color = (0, 0, 0)
             cent_pos = self.convert_to_pixel(self.get_centroid())
-            # pygame.draw.circle(self.map.env_surface, color, cent_pos, 25, 3)
-            pygame.gfxdraw.aacircle(self.map.env_surface, cent_pos[0],
-                                    cent_pos[1], 20, (0, 0, 1))
+            pygame.draw.circle(self.map.env_surface, color, cent_pos, 25, 3)
+            # pygame.draw.aacircle(self.map.env_surface, cent_pos[0],
+            #                         cent_pos[1], 20, (0, 0, 1))
 
         self.map.surface.blit(self.map.env_surface, self.map.position)
 
@@ -92,10 +93,7 @@ class ComplexPrimitiveManager(pygame.sprite.Sprite):
                 for vehicle in self.vehicles:
                     pos = self.convert_to_pixel(vehicle.current_pos)
                     # Draw a circle
-                    pygame.gfxdraw.filled_circle(self.map.env_surface, pos[0],
-                                                 pos[1], 3, color)
-                    pygame.gfxdraw.aacircle(self.map.env_surface, pos[0],
-                                            pos[1], 3, color)
+                    pygame.draw.circle(self.map.env_surface, color, pos, 3)
         else:
             if self.state['with_in_perimeter']:
                 color = (204, 0, 0)

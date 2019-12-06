@@ -18,7 +18,7 @@ with skip_run('skip', 'Game Test') as check, check():
 
     # Initiate ray
     if not ray.is_initialized():
-        ray.init(num_cpus=4)
+        ray.init(num_cpus=5)
 
     # Instantiate parameter server
     ps = ParameterServer.remote(config)
