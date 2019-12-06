@@ -15,6 +15,15 @@ from .action_manager import ActionManager
 from .rewards import BenningReward
 
 
+def update_parameter_server(ps, state={}, action={}):
+    if state:
+        ps.set_state(state)
+
+    if action:
+        ps.set_action(action)
+    return None
+
+
 @ray.remote
 class Benning(BaseEnv):
     def __init__(self, config):

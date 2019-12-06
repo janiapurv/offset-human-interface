@@ -56,8 +56,8 @@ class MainGUI(pygame.sprite.Sprite):
                 [states_id, actions_id, game_state_id])
 
             # Get latest red team states and actions
-            states_id = ps.get_complexity_states.remote()
-            actions_id = ps.get_complexity_actions.remote()
+            states_id = ps.get_states.remote(complexity=True)
+            actions_id = ps.get_actions.remote(complexity=True)
             complexity_states, complexity_actions, _ = ray.get(
                 [states_id, actions_id, game_state_id])
 

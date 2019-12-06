@@ -35,14 +35,13 @@ class ActionManager(object):
 
     def update(self, states, complexity_states):
         self.map.env_surface = self.map.init_env_surface.copy()
+        # Update the blue team
         self.vehicle_group.update(states)
+
+        # Update the red team
         self.vehicle_red_group.update(complexity_states)
         self.map.screen.blit(self.map.surface, self.map.position)
         return None
-
-    def convert_to_pixel(self, points):
-        pos = [int(points[1] / .2 + 420), int(points[0] / .2 + 340)]
-        return np.asarray(pos)
 
     def check_perimeter(self, states, complexity_states, ps):
         state_uav, state_ugv = states['uav'], states['ugv']
@@ -65,6 +64,5 @@ class ActionManager(object):
         for i, item in enumerate(mask[0:3]):
             if item:
                 platoon = 'uav_p_' + str(i + 1)
-                complexity_states['uav'][platoon]['with_in_perimeter'] = True
-                ps.set_complexity_states.remote(
-                    complexity_states['uav'][platoon])
+                complex_state_uav[platoon]['with_in_perimeter'] = True
+                ps.set_state.remote(state=complex_state_uav[platoon])

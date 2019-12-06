@@ -5,6 +5,15 @@ from primitives.planning.planners import SkeletonPlanning
 from primitives.formation.control import FormationControl
 
 
+def update_parameter_server(ps, state={}, action={}):
+    if state:
+        ps.set_state.remote(state)
+
+    if action:
+        ps.set_action.remote(action)
+    return None
+
+
 class PrimitiveManager(object):
     def __init__(self, state_manager):
         """A base class to perform different primitives.
@@ -35,6 +44,8 @@ class PrimitiveManager(object):
         # Primitive parameters
         self.action = action  # make a copy and use it everywhere
         self.state = action  # we have the same template for states also
+        self.key = self.action['vehicles_type'] + '_p_' + str(
+            self.action['platoon_id'])
 
         if self.action['vehicles_type'] == 'uav':
             self.vehicles = [
@@ -114,7 +125,7 @@ class PrimitiveManager(object):
             points[i, :] = self.convert_pixel_ordinate(point, ispixel=True)
 
         if self.action['vehicles_type'] == 'uav':
-            # As of now don't split any splines
+            # UAVs travel in straight line
             x_new, y_new = points[-1, 0], points[-1, 1]
         else:
             x_new, y_new = points[:, 0], points[:, 1]
@@ -129,11 +140,9 @@ class PrimitiveManager(object):
             'formation': self.formation_primitive
         }
 
-        # Get the latest actions
+        # Get the latest actions and update the self action variable
         actions = ray.get(ps.get_actions.remote())
-        key = self.action['vehicles_type'] + '_p_' + str(
-            self.action['platoon_id'])
-        self.action = actions[self.action['vehicles_type']][key]
+        self.action = actions[self.action['vehicles_type']][self.key]
 
         if self.action['execute'] and self.action['n_vehicles'] > 0:
             # Start executing the primitive
@@ -142,14 +151,14 @@ class PrimitiveManager(object):
             # Step the simulation
             pb.stepSimulation()
 
-            # Set the actions and states
+            # Update the action and state
             self.action['centroid_pos'] = self.get_centroid()
-            ps.set_actions.remote(self.action)
-
             # Since we are using same template for states and actions
             self.state['vehicles'] = self.vehicles
             self.state['centroid_pos'] = self.action['centroid_pos']
-            ps.set_states.remote(self.state)
+
+            # Update the parameter server
+            update_parameter_server(ps, state=self.state, action=self.action)
         else:
             done = False
 
@@ -167,13 +176,21 @@ class PrimitiveManager(object):
             # First point of formation
             self.action['centroid_pos'] = self.get_centroid()
             self.action['next_pos'] = self.action['centroid_pos']
+            self.target_pos = self.action['target_pos']
+
             done = self.formation_primitive()
             if done:
                 self.action['initial_formation'] = False
                 self.new_points, points = self.get_spline_points()
+
                 # Update parameter server
-                ps.set_actions.remote(self.action)
+                ps.set_action.remote(self.action)
         else:
+            # Check if the target has changed
+            if not np.allclose(self.target_pos, self.action['target_pos']):
+                self.target_pos = self.action['target_pos']
+                self.new_points, points = self.get_spline_points()
+
             self.action['centroid_pos'] = self.get_centroid()
             distance = np.linalg.norm(self.action['centroid_pos'] -
                                       self.action['target_pos'])

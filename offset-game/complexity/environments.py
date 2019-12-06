@@ -95,7 +95,7 @@ class ComplexBenning(BaseEnv):
         """Take a step in the environement
         """
         # Get the action from parameter server
-        actions = ray.get(parameter_server.get_complexity_actions.remote())
+        actions = ray.get(parameter_server.get_actions.remote(complexity=True))
         actions_uav, actions_ugv = actions['uav'], actions['ugv']
 
         # Execute the actions

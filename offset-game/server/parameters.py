@@ -8,9 +8,6 @@ import ray
 @ray.remote
 class ParameterServer(object):
     def __init__(self, config):
-        self.uav = []
-        self.ugv = []
-        self.grid_map = []
         self.config = config
         # Blue team behavior
         self.actions = collections.defaultdict(dict)
@@ -86,22 +83,19 @@ class ParameterServer(object):
         game_state = {'pause': self.pause, 'resume': self.resume}
         return game_state
 
-    def get_actions(self):
-        return self.actions
+    def get_actions(self, complexity=False):
+        if complexity:
+            return self.complexity_actions
+        else:
+            return self.actions
 
-    def get_complexity_actions(self):
-        return self.complexity_actions
-
-    def set_actions(self, actions):
-        vehicle_type = actions['vehicles_type']
-        key = vehicle_type + '_p_' + str(actions['platoon_id'])
-        self.actions[vehicle_type][key].update(actions)
-        return None
-
-    def set_complexity_actions(self, actions):
-        vehicle_type = actions['vehicles_type']
-        key = vehicle_type + '_p_' + str(actions['platoon_id'])
-        self.complexity_actions[vehicle_type][key].update(actions)
+    def set_action(self, action, complexity=False):
+        vehicle_type = action['vehicles_type']
+        key = vehicle_type + '_p_' + str(action['platoon_id'])
+        if complexity:
+            self.complexity_actions[vehicle_type][key] = action
+        else:
+            self.actions[vehicle_type][key] = action
         return None
 
     def update_actions(self, actions_uav, actions_ugv):
@@ -109,20 +103,17 @@ class ParameterServer(object):
         self.actions['ugv'].update(actions_ugv)
         return None
 
-    def set_states(self, states):
-        vehicle_type = states['vehicles_type']
-        key = vehicle_type + '_p_' + str(states['platoon_id'])
-        self.states[vehicle_type][key] = states
+    def set_state(self, state, complexity=False):
+        vehicle_type = state['vehicles_type']
+        key = vehicle_type + '_p_' + str(state['platoon_id'])
+        if complexity:
+            self.complexity_states[vehicle_type][key] = state
+        else:
+            self.states[vehicle_type][key] = state
         return None
 
-    def set_complexity_states(self, states):
-        vehicle_type = states['vehicles_type']
-        key = vehicle_type + '_p_' + str(states['platoon_id'])
-        self.complexity_states[vehicle_type][key] = states
-        return None
-
-    def get_states(self):
-        return self.states
-
-    def get_complexity_states(self):
-        return self.complexity_states
+    def get_states(self, complexity=False):
+        if complexity:
+            return self.complexity_states
+        else:
+            return self.states

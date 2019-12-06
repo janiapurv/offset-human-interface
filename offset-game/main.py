@@ -41,7 +41,7 @@ with skip_run('run', 'Complexity Test') as check, check():
 
     # Initiate ray
     if not ray.is_initialized():
-        ray.init(num_cpus=5)
+        ray.init(num_cpus=4)
 
     # Instantiate parameter server
     ps = ParameterServer.remote(config)
@@ -61,7 +61,7 @@ with skip_run('run', 'Complexity Test') as check, check():
     complex_run_id = complex_env.step.remote(ps)
 
     # Run the simulation
-    ray.wait([env_run_id, complex_run_id, gui_run_id])
+    ray.wait([complex_run_id, env_run_id, gui_run_id])
     print(time.time() - ray.get(gui.get_start_time.remote()))
 
     # Shutdown ray

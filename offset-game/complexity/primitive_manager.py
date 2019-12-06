@@ -5,6 +5,15 @@ from primitives.planning.planners import SkeletonPlanning
 from primitives.formation.control import FormationControl
 
 
+def update_parameter_server(ps, state={}, action={}):
+    if state:
+        ps.set_state.remote(state, complexity=True)
+
+    if action:
+        ps.set_action.remote(action, complexity=True)
+    return None
+
+
 class PrimitiveManager(object):
     def __init__(self, state_manager):
         """A base class to perform different primitives.
@@ -35,6 +44,8 @@ class PrimitiveManager(object):
         # Primitive parameters
         self.action = action  # make a copy and use it everywhere
         self.state = action  # we have the same template for states also
+        self.key = self.action['vehicles_type'] + '_p_' + str(
+            self.action['platoon_id'])
 
         if self.action['vehicles_type'] == 'uav':
             self.vehicles = [
@@ -113,7 +124,7 @@ class PrimitiveManager(object):
         for i, point in enumerate(path):
             points[i, :] = self.convert_pixel_ordinate(point, ispixel=True)
 
-        # As of now don't split any splines
+        # As of now don't fit any splines
         x_new, y_new = points[:, 0], points[:, 1]
         new_points = np.array([x_new, y_new]).T
         return new_points, points
@@ -127,10 +138,8 @@ class PrimitiveManager(object):
         }
 
         # Get the latest actions
-        actions = ray.get(ps.get_complexity_actions.remote())
-        key = self.action['vehicles_type'] + '_p_' + str(
-            self.action['platoon_id'])
-        self.action = actions[self.action['vehicles_type']][key]
+        actions = ray.get(ps.get_actions.remote(complexity=True))
+        self.action = actions[self.action['vehicles_type']][self.key]
 
         if self.action['execute'] and self.action['n_vehicles'] > 0:
             # Start executing the primitive
@@ -141,15 +150,14 @@ class PrimitiveManager(object):
 
             # Set the actions and states
             self.action['centroid_pos'] = self.get_centroid()
-            ps.set_complexity_actions.remote(self.action)
-
             # Since we are using same template for states and actions
             self.state['vehicles'] = self.vehicles
             self.state['centroid_pos'] = self.action['centroid_pos']
-            ps.set_complexity_states.remote(self.state)
+
+            # Update parameter server
+            update_parameter_server(ps, state=self.state, action=self.action)
         else:
             done = False
-
         return done
 
     def planning_primitive(self, ps):
@@ -168,8 +176,9 @@ class PrimitiveManager(object):
             if done:
                 self.action['initial_formation'] = False
                 self.new_points, points = self.get_spline_points()
+
                 # Update parameter server
-                ps.set_complexity_actions.remote(self.action)
+                update_parameter_server(ps, action=self.action)
         else:
             self.action['centroid_pos'] = self.get_centroid()
             distance = np.linalg.norm(self.action['centroid_pos'] -
