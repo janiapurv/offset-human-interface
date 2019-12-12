@@ -55,6 +55,8 @@ class PrimitiveManager(object):
             self.vehicles = [
                 self.state_manager.ugv[j] for j in self.action['vehicles_id']
             ]
+        # Make all the vehicles non-idle
+        self.make_vehicles_nonidle()
         return None
 
     def make_vehicles_idle(self):
@@ -147,15 +149,11 @@ class PrimitiveManager(object):
         if self.action['execute'] and self.action['n_vehicles'] > 0:
             # Start executing the primitive
             done = primitives[self.action['primitive']](ps)
-
-            # Step the simulation
-            pb.stepSimulation()
-
             # Update the action and state
             self.action['centroid_pos'] = self.get_centroid()
             # Since we are using same template for states and actions
             self.state['vehicles'] = self.vehicles
-            self.state['centroid_pos'] = self.action['centroid_pos']
+            self.state['centroid_pos'] = self.get_centroid()
 
             # Update the parameter server
             update_parameter_server(ps, state=self.state, action=self.action)
@@ -169,7 +167,6 @@ class PrimitiveManager(object):
         """
         # Make vehicles non idle
         done_rolling = False
-        self.make_vehicles_nonidle()
 
         # Initial formation
         if self.action['initial_formation']:

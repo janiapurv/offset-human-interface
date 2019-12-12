@@ -108,6 +108,7 @@ class ActionManager(object):
             simulation_count += 1
 
             primitives_done = []
+            pb.stepSimulation()
             # Update all the uav vehicles and write to parameter server
             for key in self.uav_platoons:
                 primitives_done.append(
@@ -121,7 +122,6 @@ class ActionManager(object):
             if all(item for item in primitives_done):
                 done_rolling_primitives = True
                 break
-
             current_time = time.time() - start_time
 
         # Update the time
