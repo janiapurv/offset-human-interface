@@ -1,17 +1,7 @@
 import numpy as np
-import ray
 
-from primitives.planning.planners import SkeletonPlanning
-from primitives.formation.control import FormationControl
-
-
-def update_parameter_server(ps, state={}, action={}):
-    if state:
-        ps.set_state.remote(state)
-
-    if action:
-        ps.set_action.remote(action)
-    return None
+from ..primitives.planning.planners import SkeletonPlanning
+from ..primitives.formation.control import FormationControl
 
 
 class PrimitiveManager(object):
@@ -43,7 +33,6 @@ class PrimitiveManager(object):
         """
         # Primitive parameters
         self.action = action  # make a copy and use it everywhere
-        self.state = action  # we have the same template for states also
         self.key = self.action['vehicles_type'] + '_p_' + str(
             self.action['platoon_id'])
 
@@ -55,8 +44,6 @@ class PrimitiveManager(object):
             self.vehicles = [
                 self.state_manager.ugv[j] for j in self.action['vehicles_id']
             ]
-        # Make all the vehicles non-idle
-        self.make_vehicles_nonidle()
         return None
 
     def make_vehicles_idle(self):
@@ -122,82 +109,52 @@ class PrimitiveManager(object):
         path = self.planning.find_path(pixel_start, pixel_end, spline=False)
 
         # Convert to cartesian co-ordinates
-        points = np.zeros((len(path), 2))
-        for i, point in enumerate(path):
-            points[i, :] = self.convert_pixel_ordinate(point, ispixel=True)
-
-        if self.action['vehicles_type'] == 'uav':
-            # UAVs travel in straight line
-            x_new, y_new = points[-1, 0], points[-1, 1]
-        else:
-            x_new, y_new = points[:, 0], points[:, 1]
-        new_points = np.array([x_new, y_new]).T
+        points = [
+            self.convert_pixel_ordinate(point, ispixel=True) for point in path
+        ]
+        # As of now don't fit any splines
+        new_points = np.array(points).T
         return new_points, points
 
-    def execute_primitive(self, pb, ps):
+    def execute_primitive(self):
         """Perform primitive execution
         """
+        done = False
         primitives = {
             'planning': self.planning_primitive,
             'formation': self.formation_primitive
         }
-
-        # Get the latest actions and update the self action variable
-        actions = ray.get(ps.get_actions.remote())
-        self.action = actions[self.action['vehicles_type']][self.key]
-
-        if self.action['execute'] and self.action['n_vehicles'] > 0:
-            # Start executing the primitive
-            done = primitives[self.action['primitive']](ps)
-            # Update the action and state
-            self.action['centroid_pos'] = self.get_centroid()
-            # Since we are using same template for states and actions
-            self.state['vehicles'] = self.vehicles
-            self.state['centroid_pos'] = self.get_centroid()
-
-            # Update the parameter server
-            update_parameter_server(ps, state=self.state, action=self.action)
-        else:
-            done = False
-
+        if self.action['n_vehicles'] > 1:
+            done = primitives[self.action['primitive']]()
         return done
 
-    def planning_primitive(self, ps):
+    def planning_primitive(self):
         """Performs path planning primitive
         """
         # Make vehicles non idle
         done_rolling = False
+        self.make_vehicles_nonidle()
 
         # Initial formation
         if self.action['initial_formation']:
             # First point of formation
             self.action['centroid_pos'] = self.get_centroid()
             self.action['next_pos'] = self.action['centroid_pos']
-            self.target_pos = self.action['target_pos']
-
             done = self.formation_primitive()
             if done:
                 self.action['initial_formation'] = False
                 self.new_points, points = self.get_spline_points()
-
-                # Update parameter server
-                ps.set_action.remote(self.action)
         else:
-            # Check if the target has changed
-            if not np.allclose(self.target_pos, self.action['target_pos']):
-                self.target_pos = self.action['target_pos']
-                self.new_points, points = self.get_spline_points()
-
             self.action['centroid_pos'] = self.get_centroid()
             distance = np.linalg.norm(self.action['centroid_pos'] -
                                       self.action['target_pos'])
+
             if len(self.new_points) > 2 and distance > 2:
                 self.action['next_pos'] = self.new_points[0]
                 self.new_points = np.delete(self.new_points, 0, 0)
             else:
                 self.action['next_pos'] = self.action['target_pos']
             self.formation_primitive()
-
             if distance < 1:
                 done_rolling = True
 
@@ -208,13 +165,17 @@ class PrimitiveManager(object):
     def formation_primitive(self):
         """Performs formation primitive
         """
+        if self.action['primitive'] == 'formation':
+            self.action['centroid_pos'] = self.get_centroid()
+            self.action['next_pos'] = self.action['target_pos']
 
         self.formation_type = 'solid'  # a place holder
 
+        # Time step
         dt = self.config['simulation']['time_step']
-        self.vehicles, done = self.formation.execute(
+        self.vehicles, done_rolling = self.formation.execute(
             self.vehicles, self.action['next_pos'],
             self.action['centroid_pos'], dt, self.formation_type)
         for vehicle in self.vehicles:
             vehicle.set_position(vehicle.updated_pos)
-        return done
+        return done_rolling

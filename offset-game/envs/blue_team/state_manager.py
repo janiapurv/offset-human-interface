@@ -4,7 +4,6 @@ from numpy import genfromtxt
 
 class StateManager():
     def __init__(self, uav, ugv, current_time, config):
-        super(StateManager, self).__init__()
         # Need to specify some parameters
         self.uav = uav
         self.ugv = ugv
