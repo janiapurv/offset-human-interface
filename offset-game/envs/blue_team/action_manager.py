@@ -69,6 +69,30 @@ class ActionManager(object):
             self.ugv_platoons[key].set_action(actions_ugv[key])
         return None
 
+    def platoon_attributes(self, attributes):
+        attribute = {}
+        for i in range(self.config['simulation']['n_uav_platoons']):
+            platoon_key = 'uav_p_' + str(i + 1)
+            if attributes:
+                attribute[platoon_key] = {
+                    attr: vars(self.uav_platoons[platoon_key])['action'][attr]
+                    for attr in attributes
+                }
+            else:
+                attribute[platoon_key] = vars(
+                    self.uav_platoons[platoon_key])['action']
+        for i in range(self.config['simulation']['n_uav_platoons']):
+            platoon_key = 'ugv_p_' + str(i + 1)
+            if attributes:
+                attribute[platoon_key] = {
+                    attr: vars(self.ugv_platoons[platoon_key])['action'][attr]
+                    for attr in attributes
+                }
+            else:
+                attribute[platoon_key] = vars(
+                    self.ugv_platoons[platoon_key])['action']
+        return attribute
+
     def primitive_execution(self, actions_uav, actions_ugv, hand_coded=True):
         """Performs task execution
 

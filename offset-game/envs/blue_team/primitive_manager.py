@@ -13,7 +13,6 @@ class PrimitiveManager(object):
         state_manager : instance
             An instance of state manager
         """
-        self.config = state_manager.config
         self.state_manager = state_manager
 
         # Instance of primitives
@@ -32,16 +31,17 @@ class PrimitiveManager(object):
             and primitive realted parameters.
         """
         # Primitive parameters
+        self.dt = self.state_manager.config['simulation']['time_step']
         self.action = action  # make a copy and use it everywhere
         self.key = self.action['vehicles_type'] + '_p_' + str(
             self.action['platoon_id'])
 
         if self.action['vehicles_type'] == 'uav':
-            self.vehicles = [
+            self.action['vehicles'] = [
                 self.state_manager.uav[j] for j in self.action['vehicles_id']
             ]
         else:
-            self.vehicles = [
+            self.action['vehicles'] = [
                 self.state_manager.ugv[j] for j in self.action['vehicles_id']
             ]
         return None
@@ -49,14 +49,14 @@ class PrimitiveManager(object):
     def make_vehicles_idle(self):
         """Make the vehicles idle
         """
-        for vehicle in self.vehicles:
+        for vehicle in self.action['vehicles']:
             vehicle.idle = True
         return None
 
     def make_vehicles_nonidle(self):
         """Make the vehicles non-idle
         """
-        for vehicle in self.vehicles:
+        for vehicle in self.action['vehicles']:
             vehicle.idle = False
         return None
 
@@ -64,7 +64,7 @@ class PrimitiveManager(object):
         """Get the centroid of the vehicles
         """
         centroid = []
-        for vehicle in self.vehicles:
+        for vehicle in self.action['vehicles']:
             centroid.append(vehicle.current_pos)
         centroid = np.mean(np.asarray(centroid), axis=0)
         return centroid[0:2]  # only x and y
@@ -116,6 +116,9 @@ class PrimitiveManager(object):
         new_points = np.array(points).T
         return new_points, points
 
+    def primitive_parameters(self):
+        return self.__dict__['action']['centroid_pos']
+
     def execute_primitive(self):
         """Perform primitive execution
         """
@@ -124,6 +127,7 @@ class PrimitiveManager(object):
             'planning': self.planning_primitive,
             'formation': self.formation_primitive
         }
+        self.primitive_parameters()
         if self.action['n_vehicles'] > 1:
             done = primitives[self.action['primitive']]()
         return done
@@ -169,13 +173,9 @@ class PrimitiveManager(object):
             self.action['centroid_pos'] = self.get_centroid()
             self.action['next_pos'] = self.action['target_pos']
 
-        self.formation_type = 'solid'  # a place holder
-
-        # Time step
-        dt = self.config['simulation']['time_step']
-        self.vehicles, done_rolling = self.formation.execute(
-            self.vehicles, self.action['next_pos'],
-            self.action['centroid_pos'], dt, self.formation_type)
-        for vehicle in self.vehicles:
+        self.action['vehicles'], done_rolling = self.formation.execute(
+            self.action['vehicles'], self.action['next_pos'],
+            self.action['centroid_pos'], self.dt, 'solid')
+        for vehicle in self.action['vehicles']:
             vehicle.set_position(vehicle.updated_pos)
         return done_rolling

@@ -27,6 +27,9 @@ class BlueTeam(object):
         done = False
         return done
 
+    def get_attributes(self, attributes):
+        return self.action_manager.platoon_attributes(attributes)
+
     def execute(self, actions_uav, actions_ugv):
         """Take a step in the environement
         """

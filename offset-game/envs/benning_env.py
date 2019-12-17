@@ -5,8 +5,8 @@ from pathlib import Path
 from .agents import UaV, UgV
 from .base_env import BaseEnv
 
-from .blue_team.base import BlueTeam
-from .red_team.base import RedTeam
+from .blue_team.blue_base import BlueTeam
+from .red_team.red_base import RedTeam
 
 
 class BenningEnv(BaseEnv):
@@ -44,12 +44,13 @@ class BenningEnv(BaseEnv):
         self.n_uav = self.config['simulation']['n_uav']
 
         ugv, uav = [], []
-
+        test = []
         # Initialise the UGV and UAV
         init_orientation = self.p.getQuaternionFromEuler([math.pi / 2, 0, 0])
         for i, item in enumerate(range(self.n_ugv)):
             position = self.base_env_get_initial_position(item, self.n_ugv)
             init_pos = [position[0] * 0.25 + 2.5, position[1] * 0.25, 5]
+            test.append(init_pos)
             ugv.append(
                 UgV(self.p, init_pos, init_orientation, i, self.config,
                     team_type))
@@ -67,7 +68,7 @@ class BenningEnv(BaseEnv):
             time.sleep(1 / 240)
             self.p.stepSimulation()
 
-    def step(self, actions_uav, actions_ugv, actions_uav_b, actions_ugv_b):
+    def step(self, actions_uav, actions_ugv):
         # Roll the actions
         done_rolling_actions = False
         simulation_count = 0
@@ -79,12 +80,13 @@ class BenningEnv(BaseEnv):
             simulation_count += 1
             current_time = time.time() - start_time
             t = time.time()
-            # Run the red team (these can be made parallel)
-            self.red_team.execute(actions_uav, actions_ugv)
-
             # Run the blue team (these can be made parallel)
-            self.blue_team.execute(actions_uav_b, actions_ugv_b)
-            print(time.time() - t)
+            self.blue_team.execute(actions_uav, actions_ugv)
+            blue_team_attr = self.blue_team.get_attributes(['centroid_pos'])
+
+            # Run the red team (these can be made parallel)
+            # self.red_team.execute(blue_team_attr)
+            # print(time.time() - t)
             self.base_env_step()
 
     def get_reward(self):

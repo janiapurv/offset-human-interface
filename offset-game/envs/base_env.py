@@ -26,6 +26,7 @@ class BaseEnv(object):
         # Set parameters for simulation
         self.p.setPhysicsEngineParameter(
             fixedTimeStep=config['simulation']['time_step'], numSubSteps=1)
+        # self.p.setRealTimeSimulation(1)
 
         # Setup ground
         plane = self.p.loadURDF("plane.urdf", [0, 0, 0],

@@ -5,11 +5,9 @@ import collections
 
 import ray
 
-# from lsl.stream_data import states_packets
-# from server.parameters import ParameterServer
-# from envs.environments import Benning
-# from complexity.environments import ComplexBenning
-# from gui.main import MainGUI
+from lsl.stream_data import states_packets
+from server.parameters import ParameterServer
+from gui.main import MainGUI
 from envs.benning_env import BenningEnv
 
 from utils import skip_run
@@ -27,7 +25,7 @@ with skip_run('skip', 'Game Test') as check, check():
     ps = ParameterServer.remote(config)
 
     # Instantiate environment
-    env = Benning.remote(config)
+    env = BenningEnv.remote(config)
 
     # Instantiate GUI
     gui = MainGUI.remote(config, (1500, 750), ps)
@@ -50,10 +48,9 @@ with skip_run('skip', 'Complexity Test') as check, check():
     ps = ParameterServer.remote(config)
 
     # Instantiate complex environment
-    complex_env = ComplexBenning.remote(config)
 
     # Instantiate environment
-    env = Benning.remote(config)
+    env = BenningEnv.remote(config)
 
     # Instantiate GUI
     gui = MainGUI.remote(config, (1500, 750), ps)
@@ -61,13 +58,12 @@ with skip_run('skip', 'Complexity Test') as check, check():
     # Get the remote IDs of simulations
     gui_run_id = gui.run.remote(ps)
     env_run_id = env.step.remote(ps)
-    complex_run_id = complex_env.step.remote(ps)
 
     # Get the labstreaming data
     lsl_state_id = states_packets.remote(ps)
 
     # Run the simulation
-    ray.wait([complex_run_id, env_run_id, gui_run_id, lsl_state_id])
+    ray.wait([env_run_id, gui_run_id, lsl_state_id])
     print(time.time() - ray.get(gui.get_start_time.remote()))
 
     # Shutdown ray
@@ -98,4 +94,4 @@ with skip_run('run', 'Test New Framework') as check, check():
         actions_ugv_b[key] = ugv_parameters.copy()
 
     env = BenningEnv(config)
-    env.step(actions_uav, actions_ugv, actions_uav_b, actions_ugv_b)
+    env.step(actions_uav, actions_ugv)
